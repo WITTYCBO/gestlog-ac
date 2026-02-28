@@ -1,0 +1,1822 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>GESTLOG AC · Automáticos Canarios</title>
+
+  <!-- PWA -->
+  <link rel="manifest" href="./manifest.json">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="GESTLOG AC">
+  <meta name="theme-color" content="#1976D2">
+  <meta name="msapplication-TileColor" content="#1A237E">
+  <meta name="description" content="Sistema de Gestión Logística - Automáticos Canarios">
+
+  <!-- iOS icons -->
+  <link rel="apple-touch-icon" href="./icons/icon-192x192.png">
+  <link rel="apple-touch-icon" sizes="152x152" href="./icons/icon-152x152.png">
+  <link rel="apple-touch-icon" sizes="144x144" href="./icons/icon-144x144.png">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192x192.png">
+  <link rel="shortcut icon" href="./icons/icon-96x96.png">
+  <style>
+    /* =====================================================
+       RESET Y BASE
+    ===================================================== */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --color-primary: #1976D2;
+      --color-primary-dark: #0D47A1;
+      --color-primary-light: #BBDEFB;
+      --color-accent: #FF6D00;
+      --color-success: #2E7D32;
+      --color-warning: #F57C00;
+      --color-danger: #C62828;
+      --color-info: #0277BD;
+      --color-gray-light: #F5F5F5;
+      --color-gray: #9E9E9E;
+      --color-text: #212121;
+      --color-text-light: #757575;
+      --sidebar-w: 240px;
+      --header-h: 56px;
+      --radius: 8px;
+      --shadow: 0 2px 8px rgba(0,0,0,0.12);
+      --transition: all 0.2s ease;
+    }
+    html, body { height: 100%; font-family: 'Segoe UI', system-ui, sans-serif; background: #ECEFF1; color: var(--color-text); font-size: 14px; }
+    a { color: var(--color-primary); text-decoration: none; }
+    button { cursor: pointer; border: none; }
+
+    /* =====================================================
+       LAYOUT
+    ===================================================== */
+    #app { display: flex; height: 100vh; overflow: hidden; }
+    
+    /* SIDEBAR */
+    #sidebar {
+      width: var(--sidebar-w); min-width: var(--sidebar-w); background: #1A237E;
+      display: flex; flex-direction: column; transition: var(--transition); z-index: 100;
+      overflow-y: auto;
+    }
+    .sidebar-logo {
+      padding: 16px; background: #0D47A1; display: flex; align-items: center; gap: 10px;
+      color: #fff; font-weight: 700; font-size: 15px; min-height: var(--header-h);
+    }
+    .sidebar-logo svg { flex-shrink: 0; }
+    .sidebar-user { padding: 12px 16px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+    .sidebar-user .user-name { color: #fff; font-weight: 600; font-size: 13px; }
+    .sidebar-user .user-role {
+      color: rgba(255,255,255,0.6); font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;
+    }
+    .sidebar-nav { flex: 1; padding: 8px 0; }
+    .nav-section { padding: 8px 16px 4px; color: rgba(255,255,255,0.4); font-size: 10px; text-transform: uppercase; letter-spacing: 1px; }
+    .nav-item {
+      display: flex; align-items: center; gap: 10px; padding: 10px 16px;
+      color: rgba(255,255,255,0.75); cursor: pointer; transition: var(--transition);
+      border-left: 3px solid transparent; font-size: 13px;
+    }
+    .nav-item:hover { background: rgba(255,255,255,0.08); color: #fff; }
+    .nav-item.active { background: rgba(25,118,210,0.4); color: #fff; border-left-color: var(--color-accent); }
+    .nav-item .nav-badge {
+      margin-left: auto; background: var(--color-accent); color: #fff;
+      border-radius: 10px; padding: 1px 6px; font-size: 10px; font-weight: 700;
+    }
+
+    /* MAIN */
+    #main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+    #topbar {
+      height: var(--header-h); background: #fff; border-bottom: 1px solid #E0E0E0;
+      display: flex; align-items: center; padding: 0 20px; gap: 12px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08); flex-shrink: 0;
+    }
+    #topbar-title { font-weight: 700; font-size: 16px; color: var(--color-text); flex: 1; }
+    .topbar-search {
+      display: flex; align-items: center; background: var(--color-gray-light);
+      border-radius: 20px; padding: 6px 14px; gap: 8px; min-width: 260px;
+    }
+    .topbar-search input {
+      border: none; background: transparent; outline: none; font-size: 13px; flex: 1;
+    }
+    .btn-icon { background: transparent; border-radius: 50%; padding: 6px; display: flex; align-items: center; color: var(--color-text-light); }
+    .btn-icon:hover { background: var(--color-gray-light); }
+    #content { flex: 1; overflow-y: auto; padding: 20px; }
+
+    /* =====================================================
+       COMPONENTES UI
+    ===================================================== */
+    /* Cards */
+    .card {
+      background: #fff; border-radius: var(--radius); box-shadow: var(--shadow);
+      padding: 20px; margin-bottom: 16px;
+    }
+    .card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+    .card-title { font-size: 15px; font-weight: 700; color: var(--color-text); }
+    .card-subtitle { font-size: 12px; color: var(--color-text-light); margin-top: 2px; }
+
+    /* Stats */
+    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 20px; }
+    .stat-card {
+      background: #fff; border-radius: var(--radius); padding: 16px;
+      box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 4px;
+    }
+    .stat-card .stat-value { font-size: 28px; font-weight: 800; }
+    .stat-card .stat-label { font-size: 12px; color: var(--color-text-light); }
+    .stat-card.primary .stat-value { color: var(--color-primary); }
+    .stat-card.warning .stat-value { color: var(--color-warning); }
+    .stat-card.danger .stat-value { color: var(--color-danger); }
+    .stat-card.success .stat-value { color: var(--color-success); }
+
+    /* Botones */
+    .btn {
+      display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px;
+      border-radius: 6px; font-size: 13px; font-weight: 600; transition: var(--transition);
+    }
+    .btn-primary { background: var(--color-primary); color: #fff; }
+    .btn-primary:hover { background: var(--color-primary-dark); }
+    .btn-success { background: var(--color-success); color: #fff; }
+    .btn-success:hover { background: #1B5E20; }
+    .btn-danger { background: var(--color-danger); color: #fff; }
+    .btn-danger:hover { background: #B71C1C; }
+    .btn-warning { background: var(--color-warning); color: #fff; }
+    .btn-outline { background: transparent; border: 1.5px solid var(--color-primary); color: var(--color-primary); }
+    .btn-outline:hover { background: var(--color-primary-light); }
+    .btn-sm { padding: 5px 10px; font-size: 12px; }
+    .btn-lg { padding: 10px 22px; font-size: 14px; }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* Formularios */
+    .form-group { margin-bottom: 16px; }
+    .form-label { display: block; font-size: 12px; font-weight: 600; color: var(--color-text-light); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.3px; }
+    .form-label .required { color: var(--color-danger); margin-left: 2px; }
+    .form-control {
+      width: 100%; padding: 9px 12px; border: 1.5px solid #E0E0E0; border-radius: 6px;
+      font-size: 13px; background: #fff; transition: var(--transition); color: var(--color-text);
+    }
+    .form-control:focus { outline: none; border-color: var(--color-primary); box-shadow: 0 0 0 3px rgba(25,118,210,0.1); }
+    .form-control:disabled { background: #F5F5F5; color: var(--color-gray); }
+    textarea.form-control { resize: vertical; min-height: 80px; }
+    select.form-control { cursor: pointer; }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 16px; }
+    .form-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0 16px; }
+    .form-hint { font-size: 11px; color: var(--color-text-light); margin-top: 4px; }
+    .form-error { font-size: 11px; color: var(--color-danger); margin-top: 4px; display: none; }
+    .form-control.error { border-color: var(--color-danger); }
+
+    /* Alertas */
+    .alert { padding: 12px 16px; border-radius: 6px; margin-bottom: 16px; font-size: 13px; display: flex; gap: 10px; align-items: flex-start; }
+    .alert-warning { background: #FFF3E0; border-left: 4px solid var(--color-warning); color: #E65100; }
+    .alert-danger { background: #FFEBEE; border-left: 4px solid var(--color-danger); color: #B71C1C; }
+    .alert-success { background: #E8F5E9; border-left: 4px solid var(--color-success); color: #1B5E20; }
+    .alert-info { background: #E3F2FD; border-left: 4px solid var(--color-info); color: #01579B; }
+
+    /* Badges / Estado */
+    .badge { display: inline-flex; align-items: center; padding: 3px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; white-space: nowrap; }
+    .badge-pendiente { background: #FFF3E0; color: #E65100; }
+    .badge-autorizada { background: #E8F5E9; color: #2E7D32; }
+    .badge-rechazada { background: #FFEBEE; color: #C62828; }
+    .badge-enviada { background: #E3F2FD; color: #0277BD; }
+    .badge-recibida { background: #EDE7F6; color: #4527A0; }
+    .badge-instalada { background: #E8F5E9; color: #1B5E20; }
+    .badge-critica { background: #FFEBEE; color: #C62828; }
+    .badge-alta { background: #FFF3E0; color: #E65100; }
+    .badge-normal { background: #E3F2FD; color: #0277BD; }
+    .badge-baja { background: #F5F5F5; color: #616161; }
+
+    /* Semáforo */
+    .semaforo { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 4px; }
+    .sem-verde { background: #4CAF50; box-shadow: 0 0 4px rgba(76,175,80,0.5); }
+    .sem-amarillo { background: #FFC107; box-shadow: 0 0 4px rgba(255,193,7,0.5); }
+    .sem-rojo { background: #F44336; box-shadow: 0 0 4px rgba(244,67,54,0.5); }
+    .sem-gris { background: #9E9E9E; }
+
+    /* Tabla */
+    .table-container { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; }
+    th { text-align: left; font-size: 11px; font-weight: 700; color: var(--color-text-light); text-transform: uppercase; padding: 10px 12px; border-bottom: 2px solid #E0E0E0; white-space: nowrap; }
+    td { padding: 10px 12px; border-bottom: 1px solid #F0F0F0; font-size: 13px; vertical-align: middle; }
+    tr:hover td { background: #F8F9FA; }
+    .tracking-code { font-family: monospace; font-size: 12px; background: #F5F5F5; padding: 2px 6px; border-radius: 4px; }
+
+    /* Timeline */
+    .timeline { position: relative; padding-left: 24px; }
+    .timeline::before { content: ''; position: absolute; left: 8px; top: 0; bottom: 0; width: 2px; background: #E0E0E0; }
+    .timeline-item { position: relative; padding-bottom: 20px; }
+    .timeline-dot { position: absolute; left: -20px; width: 12px; height: 12px; border-radius: 50%; background: var(--color-primary); border: 2px solid #fff; box-shadow: 0 0 0 2px var(--color-primary); }
+    .timeline-date { font-size: 11px; color: var(--color-text-light); }
+    .timeline-event { font-weight: 600; font-size: 13px; margin: 2px 0; }
+    .timeline-detail { font-size: 12px; color: var(--color-text-light); }
+    .timeline-user { font-size: 11px; color: var(--color-gray); margin-top: 2px; }
+
+    /* Modal */
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 20px; opacity: 0; pointer-events: none; transition: opacity 0.2s; }
+    .modal-overlay.open { opacity: 1; pointer-events: all; }
+    .modal { background: #fff; border-radius: var(--radius); max-width: 700px; width: 100%; max-height: 90vh; overflow-y: auto; box-shadow: 0 8px 32px rgba(0,0,0,0.2); transform: scale(0.95); transition: transform 0.2s; }
+    .modal-overlay.open .modal { transform: scale(1); }
+    .modal-header { padding: 20px; border-bottom: 1px solid #E0E0E0; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; background: #fff; z-index: 1; }
+    .modal-title { font-size: 16px; font-weight: 700; }
+    .modal-body { padding: 20px; }
+    .modal-footer { padding: 16px 20px; border-top: 1px solid #E0E0E0; display: flex; gap: 10px; justify-content: flex-end; }
+    .btn-close { background: none; color: var(--color-text-light); font-size: 20px; padding: 4px 8px; border-radius: 4px; }
+    .btn-close:hover { background: var(--color-gray-light); }
+
+    /* Toast */
+    #toast-container { position: fixed; bottom: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; }
+    .toast { padding: 12px 20px; border-radius: 8px; background: #323232; color: #fff; font-size: 13px; box-shadow: var(--shadow); display: flex; align-items: center; gap: 10px; max-width: 400px; animation: slideInRight 0.3s ease; }
+    .toast.success { background: var(--color-success); }
+    .toast.error { background: var(--color-danger); }
+    .toast.warning { background: var(--color-warning); }
+    @keyframes slideInRight { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+    /* Loading */
+    .loading { display: flex; align-items: center; justify-content: center; padding: 40px; }
+    .spinner { width: 36px; height: 36px; border: 3px solid var(--color-primary-light); border-top-color: var(--color-primary); border-radius: 50%; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Líneas de repuesto */
+    .lineas-table table { border: 1px solid #E0E0E0; border-radius: 6px; overflow: hidden; }
+    .lineas-table th { background: var(--color-gray-light); }
+    .lineas-table .btn-remove { color: var(--color-danger); background: none; font-size: 16px; padding: 2px 6px; }
+
+    /* Tabs */
+    .tabs { display: flex; border-bottom: 2px solid #E0E0E0; margin-bottom: 20px; gap: 0; overflow-x: auto; }
+    .tab { padding: 10px 18px; font-size: 13px; font-weight: 600; color: var(--color-text-light); border-bottom: 2px solid transparent; margin-bottom: -2px; cursor: pointer; white-space: nowrap; transition: var(--transition); }
+    .tab:hover { color: var(--color-primary); }
+    .tab.active { color: var(--color-primary); border-bottom-color: var(--color-primary); }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      #sidebar { position: fixed; left: -240px; }
+      #sidebar.open { left: 0; }
+      .form-grid, .form-grid-3 { grid-template-columns: 1fr; }
+      .stats-grid { grid-template-columns: 1fr 1fr; }
+    }
+
+    /* Utilidades */
+    .d-flex { display: flex; }
+    .align-center { align-items: center; }
+    .gap-10 { gap: 10px; }
+    .gap-8 { gap: 8px; }
+    .ml-auto { margin-left: auto; }
+    .mt-16 { margin-top: 16px; }
+    .mb-16 { margin-bottom: 16px; }
+    .text-right { text-align: right; }
+    .text-center { text-align: center; }
+    .text-muted { color: var(--color-text-light); }
+    .text-small { font-size: 11px; }
+    .font-mono { font-family: monospace; }
+    .full-width { width: 100%; }
+    .hidden { display: none !important; }
+    .section-divider { border: none; border-top: 1px solid #E0E0E0; margin: 20px 0; }
+    .info-row { display: flex; gap: 8px; margin-bottom: 8px; font-size: 13px; }
+    .info-label { font-weight: 600; min-width: 160px; color: var(--color-text-light); }
+    .info-value { color: var(--color-text); }
+    
+    /* Extraordinaria highlight */
+    .extraordinaria-alert { background: #FFF8E1; border: 2px solid #FFD600; border-radius: 8px; padding: 14px; margin-bottom: 16px; }
+  </style>
+</head>
+<body>
+
+<div id="app">
+  <!-- SIDEBAR -->
+  <nav id="sidebar">
+    <div class="sidebar-logo">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+        <rect width="24" height="24" rx="6" fill="#FF6D00"/>
+        <path d="M12 4L20 8V16L12 20L4 16V8L12 4Z" stroke="white" stroke-width="2" fill="none"/>
+        <circle cx="12" cy="12" r="3" fill="white"/>
+      </svg>
+      <div>
+        <div>AC-WPA</div>
+        <div style="font-size:10px;opacity:0.6;font-weight:400">Automáticos Canarios</div>
+      </div>
+    </div>
+    
+    <div class="sidebar-user">
+      <div class="user-name" id="sidebar-user-name">Cargando...</div>
+      <div class="user-role" id="sidebar-user-role">-</div>
+    </div>
+
+    <div class="sidebar-nav" id="sidebar-nav">
+      <!-- Se genera dinámicamente -->
+    </div>
+  </nav>
+
+  <!-- MAIN -->
+  <div id="main">
+    <div id="topbar">
+      <button class="btn-icon" onclick="toggleSidebar()" title="Menú">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="6" width="18" height="2" rx="1"/><rect x="3" y="11" width="18" height="2" rx="1"/><rect x="3" y="16" width="18" height="2" rx="1"/></svg>
+      </button>
+      <div id="topbar-title">Dashboard</div>
+      <div class="topbar-search">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="#9E9E9E"><path d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+        <input type="text" id="topbar-search-input" placeholder="Buscar por tracking..." onkeydown="if(event.key==='Enter') buscarRapido(this.value)">
+      </div>
+      <button class="btn btn-primary btn-sm" onclick="mostrarPantalla('nueva-solicitud')">
+        + Nueva Solicitud
+      </button>
+    </div>
+
+    <div id="content">
+      <div class="loading"><div class="spinner"></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- MODALES -->
+<div class="modal-overlay" id="modal-overlay" onclick="cerrarModal()">
+  <div class="modal" id="modal-content" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <span class="modal-title" id="modal-title">Modal</span>
+      <button class="btn-close" onclick="cerrarModal()">×</button>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
+    <div class="modal-footer" id="modal-footer" style="display:none"></div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast-container"></div>
+
+<script>
+// ============================================================
+// ESTADO GLOBAL
+// ============================================================
+// ============================================================
+// CONFIGURACIÓN — Cambiar esta URL si se redesplega el backend
+// ============================================================
+const BACKEND_URL = 'https://script.google.com/macros/s/AKfycbwIatcLNoSw0bBLM47MwUl476Jo1vxWnHT9C9YVKMCS89-iveEFHHZKXkK6_OpcNxYg3A/exec';
+
+const APP = {
+  usuario: null,
+  pantalla: null,
+  SCRIPT_URL: BACKEND_URL,
+  pendientesBadge: 0
+};
+
+// ============================================================
+// REGISTRO DEL SERVICE WORKER (PWA)
+// ============================================================
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js')
+      .then(reg => console.log('[PWA] Service Worker registrado:', reg.scope))
+      .catch(err => console.warn('[PWA] Error SW:', err));
+  });
+}
+
+// ============================================================
+// INICIALIZACIÓN
+// ============================================================
+document.addEventListener('DOMContentLoaded', async () => {
+  await cargarUsuario();
+  construirMenu();
+  mostrarPantalla('dashboard');
+});
+
+async function cargarUsuario() {
+  try {
+    const res = await apiGet({ action: 'getUsuarioActual' });
+    APP.usuario = res.data || { nombre: 'Usuario', rol: 'tecnico', email: '' };
+  } catch (e) {
+    APP.usuario = { nombre: 'Usuario', rol: 'tecnico', email: '' };
+  }
+  document.getElementById('sidebar-user-name').textContent = APP.usuario.nombre || APP.usuario.email;
+  document.getElementById('sidebar-user-role').textContent = labelRol(APP.usuario.rol);
+}
+
+function labelRol(rol) {
+  const labels = { admin: 'Administrador', director: 'Director', tecnico: 'Técnico', laboratorio: 'Laboratorio', central: 'Central', encargado_logistica: 'Logística', distribucion: 'Distribución' };
+  return labels[rol] || rol;
+}
+
+// ============================================================
+// MENÚ DINÁMICO POR ROL
+// ============================================================
+function construirMenu() {
+  const rol = APP.usuario?.rol || 'tecnico';
+  const nav = document.getElementById('sidebar-nav');
+  
+  const items = [
+    { label: 'Dashboard', icon: icons.home, screen: 'dashboard', roles: ['*'] },
+    { section: 'SOLICITUDES' },
+    { label: 'Mis Solicitudes', icon: icons.list, screen: 'mis-solicitudes', roles: ['*'] },
+    { label: 'Nueva Solicitud', icon: icons.plus, screen: 'nueva-solicitud', roles: ['*'] },
+    { label: 'Nuevo RDR', icon: icons.rdr, screen: 'nuevo-rdr', roles: ['*'] },
+    { section: 'GESTIÓN', roles: ['laboratorio','central','encargado_logistica','distribucion','director','admin'] },
+    { label: 'Todas Solicitudes', icon: icons.list, screen: 'todas-solicitudes', roles: ['laboratorio','central','encargado_logistica','director','admin'] },
+    { label: 'ORC / Canjes', icon: icons.orc, screen: 'orc-canjes', roles: ['distribucion','encargado_logistica','director','admin'] },
+    { label: 'Envíos', icon: icons.envio, screen: 'envios', roles: ['central','encargado_logistica','laboratorio','director','admin'] },
+    { label: 'Recepciones', icon: icons.recepcion, screen: 'recepciones', roles: ['*'] },
+    { section: 'DIRECTOR', roles: ['director','admin'] },
+    { label: 'Panel Director', icon: icons.director, screen: 'panel-director', badge: true, roles: ['director','admin'] },
+    { section: 'CONSULTA' },
+    { label: 'Consultar Repuesto', icon: icons.search, screen: 'consultar-repuesto', roles: ['*'] },
+  ];
+
+  let html = '';
+  items.forEach(item => {
+    if (item.section) {
+      const rolesOk = !item.roles || item.roles.includes(rol) || item.roles.includes('*');
+      if (!rolesOk) return;
+      html += `<div class="nav-section">${item.section}</div>`;
+    } else {
+      const rolesOk = !item.roles || item.roles.includes(rol) || item.roles.includes('*');
+      if (!rolesOk) return;
+      html += `<div class="nav-item" data-screen="${item.screen}" onclick="mostrarPantalla('${item.screen}')">
+        ${item.icon || ''} <span>${item.label}</span>
+        ${item.badge ? `<span class="nav-badge" id="badge-${item.screen}" style="display:none">0</span>` : ''}
+      </div>`;
+    }
+  });
+  nav.innerHTML = html;
+}
+
+// ============================================================
+// ROUTER DE PANTALLAS
+// ============================================================
+async function mostrarPantalla(nombre) {
+  APP.pantalla = nombre;
+  // Marcar nav activo
+  document.querySelectorAll('.nav-item').forEach(el => {
+    el.classList.toggle('active', el.dataset.screen === nombre);
+  });
+  
+  const titles = {
+    'dashboard': 'Dashboard', 'mis-solicitudes': 'Mis Solicitudes',
+    'nueva-solicitud': 'Nueva Solicitud de Repuesto', 'nuevo-rdr': 'Nuevo RDR',
+    'todas-solicitudes': 'Todas las Solicitudes', 'orc-canjes': 'ORC / Canjes',
+    'envios': 'Gestión de Envíos', 'recepciones': 'Recepciones',
+    'panel-director': 'Panel del Director', 'consultar-repuesto': 'Consultar Repuesto'
+  };
+  document.getElementById('topbar-title').textContent = titles[nombre] || nombre;
+
+  const content = document.getElementById('content');
+  content.innerHTML = `<div class="loading"><div class="spinner"></div></div>`;
+
+  const pantallas = {
+    'dashboard': renderDashboard,
+    'mis-solicitudes': () => renderListaSolicitudes(false),
+    'todas-solicitudes': () => renderListaSolicitudes(true),
+    'nueva-solicitud': renderFormSolicitud,
+    'nuevo-rdr': renderFormRDR,
+    'panel-director': renderPanelDirector,
+    'consultar-repuesto': renderConsultaRepuesto,
+    'envios': renderEnvios,
+    'recepciones': renderRecepciones,
+    'orc-canjes': renderORC
+  };
+
+  const fn = pantallas[nombre];
+  if (fn) {
+    try {
+      const html = await fn();
+      content.innerHTML = html || '<p class="text-muted text-center" style="padding:40px">Módulo en desarrollo</p>';
+      initPantallaEvents(nombre);
+    } catch (e) {
+      content.innerHTML = `<div class="alert alert-danger">Error al cargar pantalla: ${e.message}</div>`;
+    }
+  } else {
+    content.innerHTML = '<p class="text-muted text-center" style="padding:40px">Pantalla no disponible</p>';
+  }
+}
+
+// ============================================================
+// DASHBOARD
+// ============================================================
+async function renderDashboard() {
+  const rol = APP.usuario?.rol;
+  let solicitudes = [];
+  try {
+    const filtros = {};
+    const res = await apiGet({ action: 'listarSolicitudes', filtros: JSON.stringify(filtros) });
+    solicitudes = res.data || [];
+  } catch (e) {}
+
+  const pendientes = solicitudes.filter(s => s.estado_autorizacion_director === 'pendiente').length;
+  const enTransito = solicitudes.filter(s => ['enviada','en_transito'].includes(s.estado_solicitud)).length;
+  const urgentes = solicitudes.filter(s => ['critica','alta'].includes(s.urgencia) && !['cerrada','instalada','cancelada'].includes(s.estado_solicitud)).length;
+  const total = solicitudes.length;
+
+  const recientes = solicitudes.slice(0, 8);
+
+  return `
+    <div class="stats-grid">
+      <div class="stat-card primary">
+        <div class="stat-value">${total}</div>
+        <div class="stat-label">Total Solicitudes</div>
+      </div>
+      <div class="stat-card warning">
+        <div class="stat-value">${pendientes}</div>
+        <div class="stat-label">Pendientes Autorización</div>
+      </div>
+      <div class="stat-card info" style="--color-info:#0277BD">
+        <div class="stat-value" style="color:#0277BD">${enTransito}</div>
+        <div class="stat-label">En Tránsito</div>
+      </div>
+      <div class="stat-card danger">
+        <div class="stat-value">${urgentes}</div>
+        <div class="stat-label">Urgentes / Críticas</div>
+      </div>
+    </div>
+
+    ${rol === 'director' || rol === 'admin' ? `
+    <div class="card">
+      <div class="card-header">
+        <div><div class="card-title">⚠️ Pendientes de Autorización</div><div class="card-subtitle">Requieren decisión del director</div></div>
+        <button class="btn btn-primary btn-sm" onclick="mostrarPantalla('panel-director')">Ver panel completo</button>
+      </div>
+      ${pendientes === 0
+        ? '<p class="text-muted text-center" style="padding:20px">No hay solicitudes pendientes de autorización ✓</p>'
+        : renderTablaSolicitudesMini(solicitudes.filter(s => s.estado_autorizacion_director === 'pendiente').slice(0, 5))
+      }
+    </div>` : ''}
+
+    <div class="card">
+      <div class="card-header">
+        <div><div class="card-title">Actividad Reciente</div></div>
+        <button class="btn btn-outline btn-sm" onclick="mostrarPantalla('mis-solicitudes')">Ver todas</button>
+      </div>
+      ${recientes.length === 0
+        ? '<p class="text-muted text-center" style="padding:20px">No hay solicitudes registradas</p>'
+        : renderTablaSolicitudesMini(recientes)
+      }
+    </div>
+  `;
+}
+
+function renderTablaSolicitudesMini(solicitudes) {
+  return `<div class="table-container"><table>
+    <thead><tr>
+      <th>Tracking</th><th>Tipo</th><th>Solicitante</th>
+      <th>Urgencia</th><th>Estado</th><th>Fecha</th><th></th>
+    </tr></thead>
+    <tbody>
+      ${solicitudes.map(s => `
+        <tr>
+          <td><span class="tracking-code">${s.tracking}</span></td>
+          <td>${s.tipo_solicitud}</td>
+          <td>${s.solicitante_nombre || s.solicitante_id || '-'}</td>
+          <td>${badgeUrgencia(s.urgencia)}</td>
+          <td>${badgeEstado(s.estado_solicitud)}</td>
+          <td class="text-muted text-small">${formatFecha(s.fecha_hora_solicitud)}</td>
+          <td><button class="btn btn-outline btn-sm" onclick="verDetalleSolicitud('${s.solicitud_id}')">Ver</button></td>
+        </tr>`).join('')}
+    </tbody>
+  </table></div>`;
+}
+
+// ============================================================
+// FORMULARIO: NUEVA SOLICITUD
+// ============================================================
+async function renderFormSolicitud() {
+  const [maquinas, ubicaciones] = await Promise.all([
+    apiGet({ action: 'getMaquinas' }).then(r => r.data || []),
+    apiGet({ action: 'getUbicaciones' }).then(r => r.data || [])
+  ]);
+
+  return `
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">📋 Nueva Solicitud de Repuesto</div>
+      <div class="card-subtitle">Todos los campos marcados con * son obligatorios</div>
+    </div>
+
+    <form id="form-solicitud" onsubmit="submitSolicitud(event)">
+      <!-- BLOQUE: DATOS BASE -->
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label">Tipo de Solicitud <span class="required">*</span></label>
+          <select class="form-control" id="sol-tipo" required onchange="onTipoSolicitudChange()">
+            <option value="">-- Seleccionar --</option>
+            <option value="correctivo">Correctivo</option>
+            <option value="preventivo">Preventivo</option>
+            <option value="canje">Canje</option>
+            <option value="stock_taller">Stock Taller</option>
+            <option value="instalacion">Instalación</option>
+            <option value="otro">Otro</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Destino de la Solicitud <span class="required">*</span></label>
+          <select class="form-control" id="sol-destino" required onchange="onDestinoChange()">
+            <option value="">-- Seleccionar --</option>
+            <option value="laboratorio">🔬 Laboratorio</option>
+            <option value="central">🏭 Central</option>
+            <option value="encargado_logistica">📦 Encargado de Logística</option>
+            <option value="solicitud_extraordinaria">⚠️ Solicitud Extraordinaria</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label">Urgencia <span class="required">*</span></label>
+          <select class="form-control" id="sol-urgencia" required>
+            <option value="normal" selected>Normal</option>
+            <option value="alta">Alta</option>
+            <option value="critica">🔴 Crítica</option>
+            <option value="baja">Baja</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Ticket SIGT (si aplica)</label>
+          <input type="text" class="form-control" id="sol-ticket" placeholder="SIGT-XXXX">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Receptor nominal (persona que recibe, opcional)</label>
+        <input type="text" class="form-control" id="sol-receptor" placeholder="Nombre del receptor">
+      </div>
+
+      <!-- BLOQUE EXTRAORDINARIA (oculto por defecto) -->
+      <div id="bloque-extraordinaria" class="extraordinaria-alert hidden">
+        <strong>⚠️ SOLICITUD EXTRAORDINARIA</strong>
+        <p style="font-size:12px;margin:4px 0 12px">Requiere autorización obligatoria del director antes de tramitarse.</p>
+        <div class="form-group">
+          <label class="form-label">Motivo extraordinario <span class="required">*</span></label>
+          <input type="text" class="form-control" id="sol-motivo-ext" placeholder="Describe el motivo de la solicitud extraordinaria">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Justificación detallada <span class="required">*</span></label>
+          <textarea class="form-control" id="sol-justif-ext" rows="3" placeholder="Justificación completa y detallada..."></textarea>
+        </div>
+      </div>
+
+      <!-- BLOQUE RDR (aparece en correctivo) -->
+      <div id="bloque-rdr" class="hidden">
+        <hr class="section-divider">
+        <div class="card" style="background:#FFF3E0;border:1px solid #FFB74D;box-shadow:none;">
+          <div class="card-title" style="color:#E65100;margin-bottom:12px">⚠️ REPORTE DE RETIRADA (RDR) OBLIGATORIO</div>
+          <p style="font-size:12px;margin-bottom:12px;color:#BF360C">Las solicitudes de tipo CORRECTIVO requieren registrar el repuesto retirado (RDR).</p>
+          
+          <div class="form-group">
+            <label class="form-label">¿Ya tienes un RDR registrado?</label>
+            <select class="form-control" id="sol-rdr-opcion" onchange="onRDROpcionChange()">
+              <option value="nuevo">Crear nuevo RDR ahora</option>
+              <option value="existente">Ya tengo RDR (indicar ID)</option>
+              <option value="excepcion">Solicitar excepción (justificada)</option>
+            </select>
+          </div>
+
+          <!-- RDR ID existente -->
+          <div id="rdr-existente-block" class="hidden">
+            <div class="form-group">
+              <label class="form-label">ID / Tracking del RDR existente</label>
+              <input type="text" class="form-control" id="sol-rdr-id" placeholder="RDR-XXXXXXXX o RDRXX-XXXXX">
+            </div>
+          </div>
+
+          <!-- Excepción -->
+          <div id="rdr-excepcion-block" class="hidden">
+            <div class="form-grid">
+              <div class="form-group">
+                <label class="form-label">Tipo de excepción <span class="required">*</span></label>
+                <select class="form-control" id="sol-excepcion-rdr">
+                  <option value="">-- Seleccionar --</option>
+                  <option value="preventivo_programado">Preventivo programado</option>
+                  <option value="instalacion_nueva">Instalación nueva</option>
+                  <option value="stock_taller">Reposición stock taller</option>
+                  <option value="ensayo_prueba_autorizada">Ensayo/prueba autorizada</option>
+                  <option value="campana">Campaña</option>
+                  <option value="emergencia_critica_retirada_pendiente">Emergencia crítica (retirada pendiente)</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Justificación excepción <span class="required">*</span></label>
+                <input type="text" class="form-control" id="sol-motivo-excepcion" placeholder="Motivo detallado de la excepción">
+              </div>
+            </div>
+          </div>
+
+          <!-- Mini-formulario RDR inline -->
+          <div id="rdr-nuevo-block">
+            ${renderMiniFormRDR(maquinas, ubicaciones)}
+          </div>
+        </div>
+      </div>
+
+      <!-- LÍNEAS DE REPUESTO -->
+      <hr class="section-divider">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <strong>Repuestos solicitados <span class="required">*</span></strong>
+        <button type="button" class="btn btn-outline btn-sm" onclick="agregarLinea()">+ Añadir repuesto</button>
+      </div>
+      <div class="lineas-table" id="lineas-container">
+        <table>
+          <thead><tr><th>#</th><th>Código</th><th>Descripción</th><th>Cantidad</th><th>Unidad</th><th></th></tr></thead>
+          <tbody id="lineas-tbody">
+            <tr id="linea-row-1">
+              <td>1</td>
+              <td><input type="text" class="form-control" placeholder="Código SIC" id="linea-cod-1" required></td>
+              <td><input type="text" class="form-control" placeholder="Descripción" id="linea-desc-1"></td>
+              <td><input type="number" class="form-control" value="1" min="1" id="linea-qty-1" style="width:70px" required></td>
+              <td><select class="form-control" id="linea-ud-1" style="width:80px"><option>ud</option><option>m</option><option>kg</option><option>l</option></select></td>
+              <td></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div id="lineas-counter" style="font-size:11px;color:#9E9E9E;margin-top:4px">1 línea</div>
+
+      <!-- OBSERVACIONES -->
+      <div class="form-group mt-16">
+        <label class="form-label">Observaciones generales</label>
+        <textarea class="form-control" id="sol-observaciones" rows="2" placeholder="Observaciones, referencias, información adicional..."></textarea>
+      </div>
+
+      <!-- ACCIONES -->
+      <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:20px">
+        <button type="button" class="btn btn-outline" onclick="mostrarPantalla('dashboard')">Cancelar</button>
+        <button type="submit" class="btn btn-primary btn-lg" id="btn-submit-sol">
+          📨 Enviar Solicitud
+        </button>
+      </div>
+    </form>
+  </div>`;
+}
+
+let lineasCount = 1;
+
+function agregarLinea() {
+  lineasCount++;
+  const tbody = document.getElementById('lineas-tbody');
+  const tr = document.createElement('tr');
+  tr.id = `linea-row-${lineasCount}`;
+  tr.innerHTML = `
+    <td>${lineasCount}</td>
+    <td><input type="text" class="form-control" placeholder="Código SIC" id="linea-cod-${lineasCount}" required></td>
+    <td><input type="text" class="form-control" placeholder="Descripción" id="linea-desc-${lineasCount}"></td>
+    <td><input type="number" class="form-control" value="1" min="1" id="linea-qty-${lineasCount}" style="width:70px" required></td>
+    <td><select class="form-control" id="linea-ud-${lineasCount}" style="width:80px"><option>ud</option><option>m</option><option>kg</option><option>l</option></select></td>
+    <td><button type="button" class="btn-remove" onclick="eliminarLinea(${lineasCount})">✕</button></td>`;
+  tbody.appendChild(tr);
+  document.getElementById('lineas-counter').textContent = lineasCount + ' línea(s)';
+}
+
+function eliminarLinea(n) {
+  const tr = document.getElementById(`linea-row-${n}`);
+  if (tr && document.querySelectorAll('#lineas-tbody tr').length > 1) tr.remove();
+}
+
+function renderMiniFormRDR(maquinas, ubicaciones) {
+  return `
+    <hr class="section-divider">
+    <strong style="font-size:12px;color:#BF360C">Datos del Repuesto Retirado (RDR)</strong>
+    <div class="form-grid mt-16">
+      <div class="form-group">
+        <label class="form-label">Máquina afectada <span class="required">*</span></label>
+        <select class="form-control" id="rdr-maquina">
+          <option value="">-- Seleccionar --</option>
+          ${maquinas.map(m => `<option value="${m.maquina_id}">${m.modelo} · ${m.serie}</option>`).join('')}
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Ubicación / Salón <span class="required">*</span></label>
+        <select class="form-control" id="rdr-ubicacion">
+          <option value="">-- Seleccionar --</option>
+          ${ubicaciones.map(u => `<option value="${u.ubicacion_id}">${u.nombre}</option>`).join('')}
+        </select>
+      </div>
+    </div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label class="form-label">Código repuesto retirado <span class="required">*</span></label>
+        <input type="text" class="form-control" id="rdr-repuesto-cod" placeholder="Código SIC o descripción">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Estado de la pieza <span class="required">*</span></label>
+        <select class="form-control" id="rdr-estado-pieza">
+          <option value="">-- Seleccionar --</option>
+          <option value="averiado">Averiado</option>
+          <option value="intermitente">Intermitente</option>
+          <option value="quemado">Quemado</option>
+          <option value="desgastado">Desgastado</option>
+          <option value="roto_fisicamente">Roto físicamente</option>
+          <option value="humedad_sulfatado">Humedad / sulfatado</option>
+          <option value="pendiente_diagnostico">Pendiente diagnóstico</option>
+          <option value="otro">Otro</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Descripción avería / síntoma <span class="required">*</span></label>
+      <input type="text" class="form-control" id="rdr-averia" placeholder="Describe la avería o síntoma observado">
+    </div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label class="form-label">Destino de la pieza retirada <span class="required">*</span></label>
+        <select class="form-control" id="rdr-destino" onchange="onRDRDestinoChange()">
+          <option value="central">Central</option>
+          <option value="laboratorio">Laboratorio</option>
+          <option value="distribucion">Distribución</option>
+          <option value="desechado">Desechado</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">¿Entrega física de la pieza?</label>
+        <select class="form-control" id="rdr-entrega">
+          <option value="si">Sí</option>
+          <option value="no">No</option>
+          <option value="pendiente" selected>Pendiente</option>
+        </select>
+      </div>
+    </div>
+    <div id="rdr-orc-block" class="hidden">
+      <div class="form-group">
+        <div class="alert alert-info" style="font-size:12px">
+          📦 Destino: <strong>Distribución</strong> — Se puede crear una ORC (Orden de Reparación/Canje) automáticamente.
+        </div>
+        <label class="form-label">Tipo de ORC</label>
+        <select class="form-control" id="rdr-tipo-orc">
+          <option value="canje_inmediato">Canje inmediato</option>
+          <option value="reparacion_retorno">Reparación y retorno</option>
+          <option value="sustitucion_avanzada">Sustitución avanzada</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Ticket SIGT del correctivo</label>
+      <input type="text" class="form-control" id="rdr-ticket" placeholder="SIGT-XXXX">
+    </div>`;
+}
+
+function onRDRDestinoChange() {
+  const val = document.getElementById('rdr-destino')?.value;
+  const block = document.getElementById('rdr-orc-block');
+  if (block) block.classList.toggle('hidden', val !== 'distribucion');
+}
+
+function onTipoSolicitudChange() {
+  const tipo = document.getElementById('sol-tipo')?.value;
+  const bloqueRDR = document.getElementById('bloque-rdr');
+  if (bloqueRDR) bloqueRDR.classList.toggle('hidden', tipo !== 'correctivo');
+}
+
+function onDestinoChange() {
+  const destino = document.getElementById('sol-destino')?.value;
+  const bloqueExt = document.getElementById('bloque-extraordinaria');
+  if (bloqueExt) bloqueExt.classList.toggle('hidden', destino !== 'solicitud_extraordinaria');
+}
+
+function onRDROpcionChange() {
+  const opcion = document.getElementById('sol-rdr-opcion')?.value;
+  document.getElementById('rdr-nuevo-block')?.classList.toggle('hidden', opcion !== 'nuevo');
+  document.getElementById('rdr-existente-block')?.classList.toggle('hidden', opcion !== 'existente');
+  document.getElementById('rdr-excepcion-block')?.classList.toggle('hidden', opcion !== 'excepcion');
+}
+
+async function submitSolicitud(event) {
+  event.preventDefault();
+  const btn = document.getElementById('btn-submit-sol');
+  btn.disabled = true;
+  btn.textContent = 'Enviando...';
+
+  try {
+    const tipo = document.getElementById('sol-tipo').value;
+    const destino = document.getElementById('sol-destino').value;
+    const urgencia = document.getElementById('sol-urgencia').value;
+    
+    // Recoger líneas
+    const lineas = [];
+    document.querySelectorAll('#lineas-tbody tr').forEach(tr => {
+      const n = tr.id.split('-').pop();
+      const cod = document.getElementById(`linea-cod-${n}`)?.value?.trim();
+      if (cod) {
+        lineas.push({
+          repuesto_codigo: cod,
+          repuesto_descripcion: document.getElementById(`linea-desc-${n}`)?.value || '',
+          cantidad: parseFloat(document.getElementById(`linea-qty-${n}`)?.value) || 1,
+          unidad: document.getElementById(`linea-ud-${n}`)?.value || 'ud'
+        });
+      }
+    });
+
+    if (lineas.length === 0) { toast('Añade al menos un repuesto', 'error'); btn.disabled = false; btn.textContent = '📨 Enviar Solicitud'; return; }
+
+    const solicitudData = {
+      tipo_solicitud: tipo, destino_solicitud: destino, urgencia,
+      ticket_sigt_id: document.getElementById('sol-ticket')?.value || '',
+      receptor_nominal: document.getElementById('sol-receptor')?.value || '',
+      observaciones: document.getElementById('sol-observaciones')?.value || '',
+      motivo_extraordinario: document.getElementById('sol-motivo-ext')?.value || '',
+      justificacion_extraordinaria: document.getElementById('sol-justif-ext')?.value || ''
+    };
+
+    // Si correctivo: manejar RDR
+    if (tipo === 'correctivo') {
+      const opcion = document.getElementById('sol-rdr-opcion')?.value;
+      
+      if (opcion === 'existente') {
+        solicitudData.rdr_id = document.getElementById('sol-rdr-id')?.value || '';
+      } else if (opcion === 'excepcion') {
+        solicitudData.excepcion_rdr = document.getElementById('sol-excepcion-rdr')?.value || '';
+        solicitudData.motivo_excepcion_rdr = document.getElementById('sol-motivo-excepcion')?.value || '';
+      } else {
+        // Crear RDR primero
+        const rdrData = {
+          maquina_id: document.getElementById('rdr-maquina')?.value,
+          ubicacion_id: document.getElementById('rdr-ubicacion')?.value,
+          repuesto_codigo: document.getElementById('rdr-repuesto-cod')?.value,
+          estado_pieza_retirada: document.getElementById('rdr-estado-pieza')?.value,
+          averia_descripcion: document.getElementById('rdr-averia')?.value,
+          destino_retirado: document.getElementById('rdr-destino')?.value || 'central',
+          entrega_fisica: document.getElementById('rdr-entrega')?.value || 'pendiente',
+          ticket_sigt_id: document.getElementById('rdr-ticket')?.value || '',
+          tecnico_id: APP.usuario?.email || ''
+        };
+        
+        const destinoRDR = rdrData.destino_retirado;
+        if (destinoRDR === 'distribucion') {
+          rdrData.crear_orc_automatico = true;
+          rdrData.tipo_orc = document.getElementById('rdr-tipo-orc')?.value || 'canje_inmediato';
+        }
+
+        const rdrRes = await apiPost({ action: 'crearRDR', data: rdrData });
+        if (!rdrRes.ok) { toast('Error al crear RDR: ' + rdrRes.error, 'error'); btn.disabled = false; btn.textContent = '📨 Enviar Solicitud'; return; }
+        solicitudData.rdr_id = rdrRes.data.rdr_id;
+        solicitudData.rdr_tracking = rdrRes.data.tracking_rdr;
+      }
+    }
+
+    const res = await apiPost({ action: 'crearSolicitud', data: { solicitud: solicitudData, lineas } });
+    
+    if (res.ok) {
+      toast(`✅ Solicitud creada: ${res.data.tracking}`, 'success');
+      mostrarPantalla('mis-solicitudes');
+    } else {
+      toast('Error: ' + res.error, 'error');
+      btn.disabled = false; btn.textContent = '📨 Enviar Solicitud';
+    }
+  } catch (e) {
+    toast('Error inesperado: ' + e.message, 'error');
+    btn.disabled = false; btn.textContent = '📨 Enviar Solicitud';
+  }
+}
+
+// ============================================================
+// FORMULARIO: NUEVO RDR
+// ============================================================
+async function renderFormRDR() {
+  const [maquinas, ubicaciones] = await Promise.all([
+    apiGet({ action: 'getMaquinas' }).then(r => r.data || []),
+    apiGet({ action: 'getUbicaciones' }).then(r => r.data || [])
+  ]);
+  
+  return `
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">🔧 Nuevo Reporte de Retirada de Repuesto (RDR)</div>
+      <div class="card-subtitle">Registro obligatorio en intervenciones correctivas</div>
+    </div>
+    <form id="form-rdr" onsubmit="submitRDR(event)">
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label">Máquina afectada <span class="required">*</span></label>
+          <select class="form-control" id="rdr-s-maquina" required>
+            <option value="">-- Seleccionar --</option>
+            ${maquinas.map(m => `<option value="${m.maquina_id}">${m.modelo} · ${m.serie}</option>`).join('')}
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Ubicación / Salón <span class="required">*</span></label>
+          <select class="form-control" id="rdr-s-ubicacion" required>
+            <option value="">-- Seleccionar --</option>
+            ${ubicaciones.map(u => `<option value="${u.ubicacion_id}">${u.nombre}</option>`).join('')}
+          </select>
+        </div>
+      </div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label">Código del repuesto retirado <span class="required">*</span></label>
+          <input type="text" class="form-control" id="rdr-s-cod" required placeholder="Código SIC o descripción">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Descripción repuesto retirado</label>
+          <input type="text" class="form-control" id="rdr-s-desc" placeholder="Descripción del repuesto">
+        </div>
+      </div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label">Estado de la pieza <span class="required">*</span></label>
+          <select class="form-control" id="rdr-s-estado" required>
+            <option value="">-- Seleccionar --</option>
+            <option value="averiado">Averiado</option>
+            <option value="intermitente">Intermitente</option>
+            <option value="quemado">Quemado</option>
+            <option value="desgastado">Desgastado</option>
+            <option value="roto_fisicamente">Roto físicamente</option>
+            <option value="humedad_sulfatado">Humedad / sulfatado</option>
+            <option value="pendiente_diagnostico">Pendiente diagnóstico</option>
+            <option value="otro">Otro</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Ticket SIGT asociado</label>
+          <input type="text" class="form-control" id="rdr-s-ticket" placeholder="SIGT-XXXX">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Descripción avería / síntoma <span class="required">*</span></label>
+        <textarea class="form-control" id="rdr-s-averia" required rows="2" placeholder="Describe el problema detectado, síntomas, condiciones de la avería..."></textarea>
+      </div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label">Destino de la pieza retirada <span class="required">*</span></label>
+          <select class="form-control" id="rdr-s-destino" required>
+            <option value="central">Central</option>
+            <option value="laboratorio">Laboratorio</option>
+            <option value="distribucion">Distribución</option>
+            <option value="desechado">Desechado</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Entrega física de la pieza</label>
+          <select class="form-control" id="rdr-s-entrega">
+            <option value="si">Sí - entrego la pieza</option>
+            <option value="no">No entrego</option>
+            <option value="pendiente" selected>Pendiente</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">¿Requiere análisis en laboratorio?</label>
+        <select class="form-control" id="rdr-s-analisis">
+          <option value="no">No</option>
+          <option value="si">Sí</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Observaciones</label>
+        <textarea class="form-control" id="rdr-s-obs" rows="2" placeholder="Observaciones adicionales, contexto..."></textarea>
+      </div>
+      <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:20px">
+        <button type="button" class="btn btn-outline" onclick="mostrarPantalla('dashboard')">Cancelar</button>
+        <button type="submit" class="btn btn-primary btn-lg">📝 Registrar RDR</button>
+      </div>
+    </form>
+  </div>`;
+}
+
+async function submitRDR(event) {
+  event.preventDefault();
+  const btn = event.submitter;
+  btn.disabled = true; btn.textContent = 'Guardando...';
+  try {
+    const data = {
+      tecnico_id: APP.usuario?.email || '',
+      maquina_id: document.getElementById('rdr-s-maquina').value,
+      ubicacion_id: document.getElementById('rdr-s-ubicacion').value,
+      repuesto_codigo: document.getElementById('rdr-s-cod').value,
+      repuesto_descripcion: document.getElementById('rdr-s-desc').value,
+      estado_pieza_retirada: document.getElementById('rdr-s-estado').value,
+      averia_descripcion: document.getElementById('rdr-s-averia').value,
+      destino_retirado: document.getElementById('rdr-s-destino').value,
+      entrega_fisica: document.getElementById('rdr-s-entrega').value,
+      requiere_analisis_lab: document.getElementById('rdr-s-analisis').value,
+      ticket_sigt_id: document.getElementById('rdr-s-ticket').value,
+      observaciones: document.getElementById('rdr-s-obs').value
+    };
+    const res = await apiPost({ action: 'crearRDR', data });
+    if (res.ok) {
+      toast(`✅ RDR creado: ${res.data.tracking_rdr}`, 'success');
+      mostrarPantalla('mis-solicitudes');
+    } else {
+      toast('Error: ' + res.error, 'error');
+      btn.disabled = false; btn.textContent = '📝 Registrar RDR';
+    }
+  } catch (e) {
+    toast('Error: ' + e.message, 'error');
+    btn.disabled = false; btn.textContent = '📝 Registrar RDR';
+  }
+}
+
+// ============================================================
+// LISTA SOLICITUDES
+// ============================================================
+async function renderListaSolicitudes(todas) {
+  const rol = APP.usuario?.rol;
+  const action = todas ? 'listarSolicitudes' : 'listarSolicitudes';
+  let solicitudes = [];
+  try {
+    const res = await apiGet({ action, filtros: JSON.stringify({}) });
+    solicitudes = res.data || [];
+    if (!todas && rol === 'tecnico') {
+      // Filtrar por usuario (el backend ya lo hace, pero por seguridad)
+    }
+  } catch (e) { solicitudes = []; }
+
+  return `
+  <div class="card">
+    <div class="card-header">
+      <div><div class="card-title">${todas ? 'Todas las Solicitudes' : 'Mis Solicitudes'}</div>
+        <div class="card-subtitle">${solicitudes.length} solicitudes encontradas</div>
+      </div>
+      <div class="d-flex gap-10">
+        <select class="form-control" id="filtro-estado" onchange="filtrarSolicitudes()" style="width:180px">
+          <option value="">Todos los estados</option>
+          <option value="pendiente_autorizacion_director">Pendiente autorización</option>
+          <option value="autorizada">Autorizada</option>
+          <option value="enviada">Enviada</option>
+          <option value="recibida">Recibida</option>
+          <option value="cerrada">Cerrada</option>
+        </select>
+        <button class="btn btn-primary btn-sm" onclick="mostrarPantalla('nueva-solicitud')">+ Nueva</button>
+      </div>
+    </div>
+    <div id="tabla-solicitudes">
+      ${renderTablaSolicitudesCompleta(solicitudes)}
+    </div>
+  </div>`;
+}
+
+function renderTablaSolicitudesCompleta(solicitudes) {
+  if (solicitudes.length === 0) return '<p class="text-muted text-center" style="padding:30px">No hay solicitudes que mostrar</p>';
+  return `<div class="table-container"><table>
+    <thead><tr>
+      <th>Tracking</th><th>Tipo</th><th>Solicitante</th><th>Destino</th>
+      <th>Urgencia</th><th>Estado</th><th>Dir.</th><th>Fecha</th><th>Acciones</th>
+    </tr></thead>
+    <tbody>
+      ${solicitudes.map(s => `
+        <tr>
+          <td><span class="tracking-code">${s.tracking}</span></td>
+          <td>${s.tipo_solicitud}</td>
+          <td class="text-small">${s.solicitante_nombre || '-'}</td>
+          <td class="text-small">${labelDestino(s.destino_solicitud)}</td>
+          <td>${badgeUrgencia(s.urgencia)}</td>
+          <td>${badgeEstado(s.estado_solicitud)}</td>
+          <td>${badgeAutorizacion(s.estado_autorizacion_director)}</td>
+          <td class="text-muted text-small">${formatFecha(s.fecha_hora_solicitud)}</td>
+          <td>
+            <button class="btn btn-outline btn-sm" onclick="verDetalleSolicitud('${s.solicitud_id}')">Ver</button>
+          </td>
+        </tr>`).join('')}
+    </tbody>
+  </table></div>`;
+}
+
+// ============================================================
+// PANEL DIRECTOR
+// ============================================================
+async function renderPanelDirector() {
+  let pendientes = [], todas = [];
+  try {
+    const [r1, r2] = await Promise.all([
+      apiGet({ action: 'getPendientesDirector' }),
+      apiGet({ action: 'getVistaDirector', filtros: JSON.stringify({}) })
+    ]);
+    pendientes = r1.data || [];
+    todas = r2.data || [];
+  } catch (e) {}
+
+  // Actualizar badge
+  const badge = document.getElementById('badge-panel-director');
+  if (badge) { badge.textContent = pendientes.length; badge.style.display = pendientes.length > 0 ? '' : 'none'; }
+
+  return `
+  <div class="tabs">
+    <div class="tab active" onclick="setTab(this, 'tab-pendientes')">⏳ Pendientes (${pendientes.length})</div>
+    <div class="tab" onclick="setTab(this, 'tab-todas')">📋 Todas</div>
+  </div>
+
+  <div id="tab-pendientes">
+    ${pendientes.length === 0
+      ? '<div class="alert alert-success">✅ No hay solicitudes pendientes de autorización.</div>'
+      : `<div class="card">
+          <div class="card-title" style="margin-bottom:16px">Solicitudes Pendientes de Autorización</div>
+          <div class="table-container"><table>
+            <thead><tr>
+              <th>Tracking</th><th>Tipo</th><th>Solicitante</th><th>Urgencia</th>
+              <th>¿Extraordinaria?</th><th>Fecha</th><th>Acción</th>
+            </tr></thead>
+            <tbody>
+              ${pendientes.map(s => `
+                <tr style="${s.es_extraordinaria==='SI' ? 'background:#FFF8E1' : ''}">
+                  <td><span class="tracking-code">${s.tracking}</span></td>
+                  <td>${s.tipo_solicitud}</td>
+                  <td>${s.solicitante_nombre}</td>
+                  <td>${badgeUrgencia(s.urgencia)}</td>
+                  <td>${s.es_extraordinaria==='SI' ? '<span style="color:#E65100;font-weight:700">⚠️ SÍ</span>' : 'No'}</td>
+                  <td class="text-small text-muted">${formatFecha(s.fecha_hora_solicitud)}</td>
+                  <td style="display:flex;gap:6px">
+                    <button class="btn btn-success btn-sm" onclick="accionDirector('${s.solicitud_id}','${s.tracking}','autorizada')">✓ Autorizar</button>
+                    <button class="btn btn-warning btn-sm" onclick="accionDirector('${s.solicitud_id}','${s.tracking}','autorizada_con_observaciones')">Obs.</button>
+                    <button class="btn btn-danger btn-sm" onclick="accionDirector('${s.solicitud_id}','${s.tracking}','rechazada')">✗ Rechazar</button>
+                    <button class="btn btn-outline btn-sm" onclick="verDetalleSolicitud('${s.solicitud_id}')">Ver</button>
+                  </td>
+                </tr>`).join('')}
+            </tbody>
+          </table></div>
+        </div>`}
+  </div>
+
+  <div id="tab-todas" class="hidden">
+    <div class="card">
+      <div class="card-title" style="margin-bottom:16px">Todas las Solicitudes</div>
+      ${renderTablaSolicitudesCompleta(todas)}
+    </div>
+  </div>`;
+}
+
+function setTab(el, tabId) {
+  const container = el.closest('.tabs').nextElementSibling;
+  // Ocultar todos los tabs del área
+  el.parentElement.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  // Mostrar/ocultar contenido
+  const tabs = el.parentElement.parentElement;
+  let next = el.parentElement.nextElementSibling;
+  while (next) {
+    if (next.id) next.classList.toggle('hidden', next.id !== tabId);
+    next = next.nextElementSibling;
+  }
+}
+
+function accionDirector(solicitudId, tracking, decision) {
+  const labels = { autorizada: 'Autorizar', autorizada_con_observaciones: 'Autorizar con observaciones', rechazada: 'Rechazar' };
+  let obsHtml = '';
+  if (decision !== 'autorizada') {
+    obsHtml = `<div class="form-group" style="margin-top:12px">
+      <label class="form-label">Observaciones${decision !== 'autorizada' ? ' <span class="required">*</span>' : ''}</label>
+      <textarea class="form-control" id="dir-obs" rows="3" placeholder="Indicar motivo o instrucciones..."></textarea>
+    </div>`;
+  }
+
+  abrirModal(
+    `${labels[decision]}: ${tracking}`,
+    `<p style="font-size:13px">¿Confirmas la acción <strong>${labels[decision]}</strong> para la solicitud <span class="tracking-code">${tracking}</span>?</p>${obsHtml}`,
+    [
+      { label: 'Cancelar', cls: 'btn-outline', action: 'cerrarModal()' },
+      { label: `Confirmar: ${labels[decision]}`, cls: decision === 'rechazada' ? 'btn-danger' : 'btn-success',
+        action: `confirmarAccionDirector('${solicitudId}','${decision}')` }
+    ]
+  );
+}
+
+async function confirmarAccionDirector(solicitudId, decision) {
+  const obs = document.getElementById('dir-obs')?.value || '';
+  if (decision !== 'autorizada' && !obs.trim()) {
+    toast('Las observaciones son obligatorias para esta acción', 'error'); return;
+  }
+  cerrarModal();
+  try {
+    const res = await apiPost({ action: 'autorizarSolicitud', data: { solicitud_id: solicitudId, decision, observaciones: obs } });
+    if (res.ok) {
+      toast('✅ Acción registrada correctamente', 'success');
+      mostrarPantalla('panel-director');
+    } else {
+      toast('Error: ' + res.error, 'error');
+    }
+  } catch (e) { toast('Error: ' + e.message, 'error'); }
+}
+
+// ============================================================
+// CONSULTA DE REPUESTO
+// ============================================================
+async function renderConsultaRepuesto() {
+  return `
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">🔍 Consultar Estado de Repuesto</div>
+      <div class="card-subtitle">Busca por número de seguimiento (tracking) o código de repuesto</div>
+    </div>
+    <div style="display:flex;gap:10px;margin-bottom:20px">
+      <select class="form-control" id="consulta-tipo" style="width:200px">
+        <option value="tracking">Por Tracking</option>
+        <option value="repuesto">Por Código Repuesto</option>
+      </select>
+      <input type="text" class="form-control" id="consulta-query" placeholder="Introduce el tracking o código..." 
+             onkeydown="if(event.key==='Enter') ejecutarConsulta()">
+      <button class="btn btn-primary" onclick="ejecutarConsulta()">🔍 Buscar</button>
+    </div>
+    <div id="consulta-resultado">
+      <div class="alert alert-info">Introduce un número de seguimiento (ej: SOL25-00001) o código de repuesto para consultar su estado.</div>
+    </div>
+  </div>`;
+}
+
+async function ejecutarConsulta() {
+  const query = document.getElementById('consulta-query')?.value?.trim();
+  const tipo = document.getElementById('consulta-tipo')?.value;
+  const div = document.getElementById('consulta-resultado');
+  if (!query) { toast('Introduce un valor para buscar', 'warning'); return; }
+  
+  div.innerHTML = `<div class="loading"><div class="spinner"></div></div>`;
+  
+  try {
+    const res = await apiGet({ action: 'consultarWPA', query, tipo });
+    if (!res.ok) { div.innerHTML = `<div class="alert alert-danger">${res.error}</div>`; return; }
+    
+    if (!res.data || (Array.isArray(res.data) && res.data.length === 0)) {
+      div.innerHTML = `<div class="alert alert-warning">No se encontraron resultados para: <strong>${query}</strong></div>`;
+      return;
+    }
+
+    const result = res.data;
+    
+    if (result.tipo === 'lista') {
+      div.innerHTML = renderResultadosMultiples(result.items);
+    } else if (result.tipo === 'detalle') {
+      div.innerHTML = renderDetalleConsulta(result.item);
+    }
+  } catch (e) {
+    div.innerHTML = `<div class="alert alert-danger">Error: ${e.message}</div>`;
+  }
+}
+
+function renderResultadosMultiples(items) {
+  return `
+  <div class="alert alert-info">Se encontraron ${items.length} coincidencias. Selecciona la que buscas:</div>
+  <div class="table-container"><table>
+    <thead><tr><th>Tracking</th><th>Código</th><th>Descripción</th><th>Máquina</th><th>Estado</th><th>Última act.</th><th></th></tr></thead>
+    <tbody>
+      ${items.map(i => `<tr>
+        <td><span class="tracking-code">${i.tracking}</span></td>
+        <td>${i.repuesto_codigo || '-'}</td>
+        <td>${i.repuesto_descripcion || '-'}</td>
+        <td class="text-small">${i.maquina_descripcion || '-'}</td>
+        <td>${badgeEstado(i.estado_actual)}</td>
+        <td class="text-small text-muted">${formatFecha(i.fecha_ultima_actualizacion)}</td>
+        <td><button class="btn btn-outline btn-sm" onclick="consultarTracking('${i.tracking}')">Ver detalle</button></td>
+      </tr>`).join('')}
+    </tbody>
+  </table></div>`;
+}
+
+function consultarTracking(tracking) {
+  document.getElementById('consulta-query').value = tracking;
+  document.getElementById('consulta-tipo').value = 'tracking';
+  ejecutarConsulta();
+}
+
+function renderDetalleConsulta(item) {
+  const eta = item.eta_calculada || {};
+  const semColor = {
+    alta: 'sem-verde', media: 'sem-amarillo', baja: 'sem-rojo', sin_eta: 'sem-gris'
+  }[eta.confianza || 'sin_eta'];
+  
+  const timeline = (item.timeline || []).slice(0, 8);
+
+  return `
+  <div class="card" style="border-left:4px solid var(--color-primary)">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:16px">
+      <div>
+        <div style="font-size:11px;color:var(--color-text-light);text-transform:uppercase;letter-spacing:.5px">NÚMERO DE SEGUIMIENTO</div>
+        <div style="font-size:20px;font-family:monospace;font-weight:700;color:var(--color-primary)">${item.tracking}</div>
+      </div>
+      <div style="text-align:right">
+        ${badgeEstado(item.estado_actual)}
+        <div style="font-size:11px;color:var(--color-text-light);margin-top:4px">Autorización: ${badgeAutorizacion(item.estado_autorizacion)}</div>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px">
+      ${item.repuesto_codigo ? `<div class="info-row"><span class="info-label">Repuesto:</span><span class="info-value">${item.repuesto_codigo} ${item.repuesto_descripcion || ''}</span></div>` : ''}
+      ${item.maquina_descripcion ? `<div class="info-row"><span class="info-label">Máquina:</span><span class="info-value">${item.maquina_descripcion}</span></div>` : ''}
+      ${item.ubicacion_nombre ? `<div class="info-row"><span class="info-label">Ubicación:</span><span class="info-value">${item.ubicacion_nombre}</span></div>` : ''}
+      ${item.ticket_sigt_id ? `<div class="info-row"><span class="info-label">Ticket SIGT:</span><span class="info-value font-mono">${item.ticket_sigt_id}</span></div>` : ''}
+    </div>
+
+    <!-- ETA -->
+    <div style="background:${eta.confianza==='alta'?'#E8F5E9':eta.confianza==='sin_eta'?'#F5F5F5':'#FFF3E0'};border-radius:6px;padding:12px;margin-bottom:16px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+        <span class="semaforo ${semColor}"></span>
+        <strong style="font-size:12px">ESTADO DE ENTREGA</strong>
+        <span style="font-size:10px;color:var(--color-text-light)">(confianza: ${eta.confianza || 'sin datos'})</span>
+      </div>
+      <div style="font-size:13px">${eta.texto || 'Sin ETA disponible'}</div>
+      ${item.novedad_ultimo ? `<div style="font-size:12px;color:var(--color-text-light);margin-top:4px">Última novedad: ${item.novedad_ultimo}</div>` : ''}
+      ${item.fecha_ultima_actualizacion ? `<div style="font-size:11px;color:var(--color-text-light)">Actualizado: ${formatFecha(item.fecha_ultima_actualizacion)}</div>` : ''}
+    </div>
+
+    <!-- TIMELINE RESUMIDO -->
+    ${timeline.length > 0 ? `
+    <div>
+      <strong style="font-size:12px;display:block;margin-bottom:12px">HISTORIAL DE EVENTOS</strong>
+      <div class="timeline">
+        ${timeline.map(e => `
+          <div class="timeline-item">
+            <div class="timeline-dot"></div>
+            <div class="timeline-date">${formatFecha(e.fecha_hora)}</div>
+            <div class="timeline-event">${e.evento}</div>
+            ${e.detalle ? `<div class="timeline-detail">${e.detalle}</div>` : ''}
+            <div class="timeline-user">${e.usuario || ''} · ${e.rol || ''}</div>
+          </div>`).join('')}
+      </div>
+    </div>` : ''}
+  </div>`;
+}
+
+async function buscarRapido(query) {
+  if (!query) return;
+  await mostrarPantalla('consultar-repuesto');
+  setTimeout(() => {
+    const inp = document.getElementById('consulta-query');
+    if (inp) { inp.value = query; ejecutarConsulta(); }
+  }, 500);
+}
+
+// ============================================================
+// VER DETALLE SOLICITUD (modal)
+// ============================================================
+async function verDetalleSolicitud(solicitudId) {
+  abrirModal('Cargando...', '<div class="loading"><div class="spinner"></div></div>', []);
+  try {
+    const res = await apiGet({ action: 'getSolicitud', id: solicitudId });
+    const s = res.data;
+    if (!s) { cerrarModal(); toast('Solicitud no encontrada', 'error'); return; }
+    
+    document.getElementById('modal-title').textContent = `Solicitud: ${s.tracking}`;
+    
+    const lineasHtml = s.lineas && s.lineas.length > 0
+      ? s.lineas.map(l => `<tr><td>${l.num_linea}</td><td class="font-mono">${l.repuesto_codigo}</td><td>${l.repuesto_descripcion||''}</td><td>${l.cantidad} ${l.unidad}</td><td>${badgeEstado(l.estado_linea)}</td></tr>`).join('')
+      : '<tr><td colspan="5" class="text-muted text-center">Sin líneas</td></tr>';
+
+    const timeline = (s.timeline || []).slice(0,10);
+
+    document.getElementById('modal-body').innerHTML = `
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px">
+        <div class="info-row"><span class="info-label">Estado:</span>${badgeEstado(s.estado_solicitud)}</div>
+        <div class="info-row"><span class="info-label">Autorización Dir.:</span>${badgeAutorizacion(s.estado_autorizacion_director)}</div>
+        <div class="info-row"><span class="info-label">Tipo:</span><span class="info-value">${s.tipo_solicitud}</span></div>
+        <div class="info-row"><span class="info-label">Urgencia:</span>${badgeUrgencia(s.urgencia)}</div>
+        <div class="info-row"><span class="info-label">Solicitante:</span><span class="info-value">${s.solicitante_nombre}</span></div>
+        <div class="info-row"><span class="info-label">Destino:</span><span class="info-value">${labelDestino(s.destino_solicitud)}</span></div>
+        <div class="info-row"><span class="info-label">Fecha:</span><span class="info-value">${formatFecha(s.fecha_hora_solicitud)}</span></div>
+        ${s.ticket_sigt_id ? `<div class="info-row"><span class="info-label">SIGT:</span><span class="info-value font-mono">${s.ticket_sigt_id}</span></div>` : ''}
+        ${s.rdr_id ? `<div class="info-row"><span class="info-label">RDR:</span><span class="info-value font-mono">${s.rdr_tracking||s.rdr_id}</span></div>` : ''}
+        ${s.es_extraordinaria==='SI' ? `<div class="info-row"><span class="info-label">Extraordinaria:</span><span style="color:#E65100;font-weight:700">⚠️ SÍ</span></div>` : ''}
+      </div>
+      ${s.obs_autorizacion_director ? `<div class="alert alert-info" style="font-size:12px"><strong>Obs. Director:</strong> ${s.obs_autorizacion_director}</div>` : ''}
+      
+      <div class="tabs" style="margin-top:4px">
+        <div class="tab active" onclick="setTabModal(this,'dt-lineas')">Repuestos</div>
+        <div class="tab" onclick="setTabModal(this,'dt-timeline')">Timeline</div>
+      </div>
+      <div id="dt-lineas">
+        <div class="table-container"><table>
+          <thead><tr><th>#</th><th>Código</th><th>Descripción</th><th>Cantidad</th><th>Estado</th></tr></thead>
+          <tbody>${lineasHtml}</tbody>
+        </table></div>
+      </div>
+      <div id="dt-timeline" class="hidden">
+        <div class="timeline" style="margin-top:10px">
+          ${timeline.map(e => `
+            <div class="timeline-item">
+              <div class="timeline-dot"></div>
+              <div class="timeline-date">${formatFecha(e.fecha_hora)}</div>
+              <div class="timeline-event">${e.evento}</div>
+              ${e.detalle ? `<div class="timeline-detail">${e.detalle}</div>` : ''}
+              <div class="timeline-user">${e.usuario||''}</div>
+            </div>`).join('') || '<p class="text-muted">Sin eventos</p>'}
+        </div>
+      </div>
+    `;
+    document.getElementById('modal-footer').style.display = 'flex';
+    document.getElementById('modal-footer').innerHTML = `<button class="btn btn-outline" onclick="cerrarModal()">Cerrar</button>`;
+  } catch(e) { cerrarModal(); toast('Error: ' + e.message, 'error'); }
+}
+
+function setTabModal(el, tabId) {
+  el.parentElement.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  document.querySelectorAll('#dt-lineas, #dt-timeline').forEach(d => d.classList.toggle('hidden', d.id !== tabId));
+}
+
+// ============================================================
+// ENVIOS
+// ============================================================
+async function renderEnvios() {
+  return `
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">📦 Gestión de Envíos</div>
+    </div>
+    <form id="form-envio" onsubmit="submitEnvio(event)">
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label">ID de Solicitud <span class="required">*</span></label>
+          <input type="text" class="form-control" id="env-solicitud-id" placeholder="SOL-XXXXXXXX" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Tipo de envío</label>
+          <select class="form-control" id="env-tipo">
+            <option value="local">Local (Canarias)</option>
+            <option value="regional" selected>Regional</option>
+            <option value="peninsular">Peninsular</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label">Origen <span class="required">*</span></label>
+          <input type="text" class="form-control" id="env-origen" required placeholder="Ej: Central Tenerife">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Destino <span class="required">*</span></label>
+          <input type="text" class="form-control" id="env-destino" required placeholder="Ej: Salón Las Américas">
+        </div>
+      </div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label">Transportista</label>
+          <input type="text" class="form-control" id="env-transportista" placeholder="Correos, MRW, DHL...">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Nº Expedición</label>
+          <input type="text" class="form-control" id="env-expedicion" placeholder="Nº albarán o seguimiento">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Observaciones</label>
+        <textarea class="form-control" id="env-obs" rows="2"></textarea>
+      </div>
+      <div style="display:flex;justify-content:flex-end;margin-top:16px">
+        <button type="submit" class="btn btn-primary">📤 Registrar Envío</button>
+      </div>
+    </form>
+  </div>`;
+}
+
+async function submitEnvio(event) {
+  event.preventDefault();
+  const btn = event.submitter; btn.disabled = true;
+  try {
+    const res = await apiPost({ action: 'crearEnvio', data: {
+      solicitud_id: document.getElementById('env-solicitud-id').value,
+      tipo_envio: document.getElementById('env-tipo').value,
+      origen: document.getElementById('env-origen').value,
+      destino: document.getElementById('env-destino').value,
+      transportista: document.getElementById('env-transportista').value,
+      num_expedicion: document.getElementById('env-expedicion').value,
+      observaciones: document.getElementById('env-obs').value
+    }});
+    if (res.ok) { toast(`✅ Envío creado: ${res.data.tracking_envio}`, 'success'); mostrarPantalla('envios'); }
+    else { toast('Error: ' + res.error, 'error'); btn.disabled = false; }
+  } catch(e) { toast('Error: ' + e.message, 'error'); btn.disabled = false; }
+}
+
+// ============================================================
+// RECEPCIONES
+// ============================================================
+async function renderRecepciones() {
+  return `
+  <div class="card">
+    <div class="card-header"><div class="card-title">📥 Registrar Recepción</div></div>
+    <form id="form-recepcion" onsubmit="submitRecepcion(event)">
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label">ID Solicitud <span class="required">*</span></label>
+          <input type="text" class="form-control" id="rec-sol-id" required placeholder="SOL-XXXXXXXX">
+        </div>
+        <div class="form-group">
+          <label class="form-label">ID Envío (si aplica)</label>
+          <input type="text" class="form-control" id="rec-env-id" placeholder="ENV-XXXXXXXX">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Resultado de recepción <span class="required">*</span></label>
+        <select class="form-control" id="rec-resultado" required>
+          <option value="conforme">Conforme — todo correcto</option>
+          <option value="con_incidencia">Con incidencia — hay problema</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">¿Instalación pendiente?</label>
+        <select class="form-control" id="rec-instalacion">
+          <option value="no">No, ya instalado</option>
+          <option value="si">Sí, pendiente</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Observaciones</label>
+        <textarea class="form-control" id="rec-obs" rows="2" placeholder="Incidencias, condiciones del paquete, etc."></textarea>
+      </div>
+      <div style="display:flex;justify-content:flex-end;margin-top:16px">
+        <button type="submit" class="btn btn-primary">✅ Registrar Recepción</button>
+      </div>
+    </form>
+  </div>`;
+}
+
+async function submitRecepcion(event) {
+  event.preventDefault();
+  const btn = event.submitter; btn.disabled = true;
+  try {
+    const res = await apiPost({ action: 'registrarRecepcion', data: {
+      solicitud_id: document.getElementById('rec-sol-id').value,
+      envio_id: document.getElementById('rec-env-id').value,
+      resultado_recepcion: document.getElementById('rec-resultado').value,
+      instalacion_pendiente: document.getElementById('rec-instalacion').value,
+      observaciones: document.getElementById('rec-obs').value
+    }});
+    if (res.ok) { toast(`✅ Recepción registrada: ${res.data.tracking_recepcion}`, 'success'); mostrarPantalla('dashboard'); }
+    else { toast('Error: ' + res.error, 'error'); btn.disabled = false; }
+  } catch(e) { toast('Error: ' + e.message, 'error'); btn.disabled = false; }
+}
+
+// ============================================================
+// ORC
+// ============================================================
+async function renderORC() {
+  return `
+  <div class="card">
+    <div class="card-header"><div class="card-title">🔄 ORC — Orden de Reparación/Canje</div></div>
+    <form id="form-orc" onsubmit="submitORC(event)">
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label">RDR de origen <span class="required">*</span></label>
+          <input type="text" class="form-control" id="orc-rdr" required placeholder="RDR-XXXXXXXX">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Tipo de ORC <span class="required">*</span></label>
+          <select class="form-control" id="orc-tipo" required>
+            <option value="canje_inmediato">Canje inmediato</option>
+            <option value="reparacion_retorno">Reparación y retorno</option>
+            <option value="sustitucion_avanzada">Sustitución avanzada</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label">Distribución / Empresa</label>
+          <input type="text" class="form-control" id="orc-dist" placeholder="Nombre de la distribución">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Responsable distribución</label>
+          <input type="text" class="form-control" id="orc-resp" placeholder="Nombre del responsable">
+        </div>
+      </div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label">Código repuesto malo</label>
+          <input type="text" class="form-control" id="orc-cod-malo" placeholder="Código SIC">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Descripción repuesto malo</label>
+          <input type="text" class="form-control" id="orc-desc-malo">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Observaciones</label>
+        <textarea class="form-control" id="orc-obs" rows="2"></textarea>
+      </div>
+      <div style="display:flex;justify-content:flex-end;margin-top:16px">
+        <button type="submit" class="btn btn-primary">🔄 Crear ORC</button>
+      </div>
+    </form>
+  </div>`;
+}
+
+async function submitORC(event) {
+  event.preventDefault();
+  const btn = event.submitter; btn.disabled = true;
+  try {
+    const res = await apiPost({ action: 'crearORC', data: {
+      rdr_id: document.getElementById('orc-rdr').value,
+      tipo_orc: document.getElementById('orc-tipo').value,
+      distribucion_nombre: document.getElementById('orc-dist').value,
+      responsable_distribucion: document.getElementById('orc-resp').value,
+      repuesto_malo_codigo: document.getElementById('orc-cod-malo').value,
+      repuesto_malo_desc: document.getElementById('orc-desc-malo').value,
+      observaciones: document.getElementById('orc-obs').value
+    }});
+    if (res.ok) { toast(`✅ ORC creada: ${res.data.tracking_orc}`, 'success'); }
+    else { toast('Error: ' + res.error, 'error'); btn.disabled = false; }
+  } catch(e) { toast('Error: ' + e.message, 'error'); btn.disabled = false; }
+}
+
+// ============================================================
+// HELPERS UI
+// ============================================================
+function badgeEstado(estado) {
+  if (!estado) return '';
+  const map = {
+    borrador: ['#78909C','white'], pendiente_autorizacion_director: ['#F57C00','white'],
+    autorizada: ['#2E7D32','white'], rechazada: ['#C62828','white'],
+    autorizada_con_observaciones: ['#558B2F','white'],
+    en_preparacion: ['#1565C0','white'], preparada: ['#0277BD','white'],
+    enviada: ['#0288D1','white'], en_transito: ['#0288D1','white'],
+    recibida: ['#6A1B9A','white'], instalada: ['#2E7D32','white'],
+    cerrada: ['#424242','white'], cancelada: ['#9E9E9E','white']
+  };
+  const [bg, fg] = map[estado] || ['#9E9E9E','white'];
+  return `<span class="badge" style="background:${bg};color:${fg}">${estado.replace(/_/g,' ')}</span>`;
+}
+
+function badgeUrgencia(u) {
+  const map = { critica: 'badge-critica', alta: 'badge-alta', normal: 'badge-normal', baja: 'badge-baja' };
+  return `<span class="badge ${map[u]||'badge-normal'}">${(u||'normal').toUpperCase()}</span>`;
+}
+
+function badgeAutorizacion(estado) {
+  if (!estado) return '';
+  const map = {
+    pendiente: 'badge-pendiente', autorizada: 'badge-autorizada',
+    rechazada: 'badge-rechazada', autorizada_con_observaciones: 'badge-autorizada'
+  };
+  return `<span class="badge ${map[estado]||'badge-pendiente'}">${estado.replace(/_/g,' ')}</span>`;
+}
+
+function labelDestino(d) {
+  const m = { laboratorio: '🔬 Laboratorio', central: '🏭 Central', encargado_logistica: '📦 Logística', solicitud_extraordinaria: '⚠️ Extraordinaria' };
+  return m[d] || d || '-';
+}
+
+function formatFecha(str) {
+  if (!str) return '-';
+  try {
+    const d = new Date(str);
+    return d.toLocaleDateString('es-ES', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' });
+  } catch(e) { return str; }
+}
+
+// ============================================================
+// MODAL
+// ============================================================
+function abrirModal(titulo, bodyHtml, acciones) {
+  document.getElementById('modal-title').textContent = titulo;
+  document.getElementById('modal-body').innerHTML = bodyHtml;
+  const footer = document.getElementById('modal-footer');
+  if (acciones && acciones.length > 0) {
+    footer.style.display = 'flex';
+    footer.innerHTML = acciones.map(a =>
+      `<button class="btn ${a.cls}" onclick="${a.action}">${a.label}</button>`
+    ).join('');
+  } else { footer.style.display = 'none'; }
+  document.getElementById('modal-overlay').classList.add('open');
+}
+
+function cerrarModal() {
+  document.getElementById('modal-overlay').classList.remove('open');
+}
+
+// ============================================================
+// TOAST
+// ============================================================
+function toast(mensaje, tipo) {
+  const container = document.getElementById('toast-container');
+  const el = document.createElement('div');
+  el.className = `toast ${tipo||''}`;
+  el.innerHTML = `${tipo==='success'?'✅':tipo==='error'?'❌':tipo==='warning'?'⚠️':'ℹ️'} ${mensaje}`;
+  container.appendChild(el);
+  setTimeout(() => el.remove(), 4000);
+}
+
+// ============================================================
+// TOGGLE SIDEBAR (MOBILE)
+// ============================================================
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('open');
+}
+
+// ============================================================
+// INIT EVENTS POR PANTALLA
+// ============================================================
+function initPantallaEvents(nombre) {
+  // Acciones post-render si se necesitan
+}
+
+// ============================================================
+// API CLIENT
+// ============================================================
+async function apiGet(params) {
+  const qs = Object.entries(params).map(([k,v]) => `${k}=${encodeURIComponent(v)}`).join('&');
+  const url = `${APP.SCRIPT_URL}?${qs}`;
+  const res = await fetch(url);
+  return res.json();
+}
+
+async function apiPost(body) {
+  const res = await fetch(APP.SCRIPT_URL, {
+    method: 'POST',
+    body: JSON.stringify(body),
+    headers: { 'Content-Type': 'application/json' }
+  });
+  return res.json();
+}
+
+// ============================================================
+// ICONS SVG
+// ============================================================
+const icons = {
+  home: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>`,
+  list: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>`,
+  plus: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>`,
+  rdr: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>`,
+  director: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>`,
+  search: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>`,
+  orc: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 014-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 01-4 4H3"/></svg>`,
+  envio: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><path d="M12 5l7 7-7 7"/></svg>`,
+  recepcion: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><line x1="12" y1="22" x2="12" y2="12"/></svg>`
+};
+</script>
+</body>
+</html>
