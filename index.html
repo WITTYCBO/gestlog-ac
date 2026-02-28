@@ -277,9 +277,66 @@
     
     /* Extraordinaria highlight */
     .extraordinaria-alert { background: #FFF8E1; border: 2px solid #FFD600; border-radius: 8px; padding: 14px; margin-bottom: 16px; }
+  /* =====================================================
+     PANTALLA DE LOGIN
+  ===================================================== */
+  #login-screen {
+    position: fixed; inset: 0; z-index: 9999;
+    background: linear-gradient(135deg, #0D47A1 0%, #1976D2 50%, #1A237E 100%);
+    display: flex; align-items: center; justify-content: center;
+    flex-direction: column; gap: 0;
+  }
+  #login-screen.hidden { display: none; }
+  .login-card {
+    background: #fff; border-radius: 16px; padding: 40px 32px 32px;
+    width: 100%; max-width: 380px; box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    display: flex; flex-direction: column; gap: 20px;
+  }
+  .login-logo {
+    display: flex; flex-direction: column; align-items: center; gap: 10px;
+  }
+  .login-logo img { width: 72px; height: 72px; border-radius: 16px; }
+  .login-logo-title { font-size: 22px; font-weight: 700; color: #1A237E; }
+  .login-logo-sub { font-size: 12px; color: #9E9E9E; }
+  .login-field { display: flex; flex-direction: column; gap: 6px; }
+  .login-field label { font-size: 13px; font-weight: 600; color: #424242; }
+  .login-field input {
+    padding: 12px 14px; border: 2px solid #E0E0E0; border-radius: 8px;
+    font-size: 14px; outline: none; transition: border-color 0.2s;
+  }
+  .login-field input:focus { border-color: #1976D2; }
+  .login-btn {
+    background: #1976D2; color: #fff; border: none; border-radius: 8px;
+    padding: 14px; font-size: 15px; font-weight: 600; cursor: pointer;
+    transition: background 0.2s;
+  }
+  .login-btn:hover { background: #0D47A1; }
+  .login-btn:disabled { background: #BDBDBD; cursor: not-allowed; }
+  .login-error {
+    background: #FFEBEE; color: #C62828; border-radius: 8px;
+    padding: 10px 14px; font-size: 13px; display: none;
+  }
+  .login-error.visible { display: block; }
   </style>
 </head>
 <body>
+
+<!-- PANTALLA DE LOGIN -->
+<div id="login-screen">
+  <div class="login-card">
+    <div class="login-logo">
+      <img src="./icons/icon-128x128.png" alt="GESTLOG AC">
+      <div class="login-logo-title">GESTLOG AC</div>
+      <div class="login-logo-sub">Automáticos Canarios</div>
+    </div>
+    <div class="login-field">
+      <label for="login-email">Correo electrónico</label>
+      <input type="email" id="login-email" placeholder="usuario@automaticoscanarios.es" autocomplete="email">
+    </div>
+    <div class="login-error" id="login-error">Usuario no encontrado o sin acceso.</div>
+    <button class="login-btn" id="login-btn" onclick="hacerLogin()">Entrar</button>
+  </div>
+</div>
 
 <div id="app">
   <!-- SIDEBAR -->
@@ -291,7 +348,7 @@
         <circle cx="12" cy="12" r="3" fill="white"/>
       </svg>
       <div>
-        <div>AC-WPA</div>
+        <div>GESTLOG AC</div>
         <div style="font-size:10px;opacity:0.6;font-weight:400">Automáticos Canarios</div>
       </div>
     </div>
@@ -299,6 +356,11 @@
     <div class="sidebar-user">
       <div class="user-name" id="sidebar-user-name">Cargando...</div>
       <div class="user-role" id="sidebar-user-role">-</div>
+      <div style="margin-top:6px">
+        <button onclick="cerrarSesion()" style="background:rgba(255,255,255,0.12);color:#fff;border:none;border-radius:4px;padding:4px 10px;font-size:11px;cursor:pointer;">
+          ⏏ Cerrar sesión
+        </button>
+      </div>
     </div>
 
     <div class="sidebar-nav" id="sidebar-nav">
@@ -374,20 +436,82 @@ if ('serviceWorker' in navigator) {
 // INICIALIZACIÓN
 // ============================================================
 document.addEventListener('DOMContentLoaded', async () => {
+  // Enter en el campo de email hace login
+  document.getElementById('login-email').addEventListener('keydown', e => {
+    if (e.key === 'Enter') hacerLogin();
+  });
   await cargarUsuario();
-  construirMenu();
-  mostrarPantalla('dashboard');
 });
 
-async function cargarUsuario() {
-  try {
-    const res = await apiGet({ action: 'getUsuarioActual' });
-    APP.usuario = res.data || { nombre: 'Usuario', rol: 'tecnico', email: '' };
-  } catch (e) {
-    APP.usuario = { nombre: 'Usuario', rol: 'tecnico', email: '' };
+// ============================================================
+// AUTENTICACIÓN
+// ============================================================
+async function hacerLogin() {
+  const email = document.getElementById('login-email').value.trim().toLowerCase();
+  const btn = document.getElementById('login-btn');
+  const errEl = document.getElementById('login-error');
+
+  if (!email) {
+    errEl.textContent = 'Por favor introduce tu correo.';
+    errEl.classList.add('visible');
+    return;
   }
+
+  btn.disabled = true;
+  btn.textContent = 'Verificando...';
+  errEl.classList.remove('visible');
+
+  try {
+    const res = await apiGet({ action: 'loginPorEmail', email });
+    if (res.ok && res.data) {
+      APP.usuario = res.data;
+      APP.email = email;
+      // Guardar sesión local
+      localStorage.setItem('gestlog_usuario', JSON.stringify(res.data));
+      mostrarApp();
+    } else {
+      errEl.textContent = 'Usuario no encontrado o sin acceso al sistema.';
+      errEl.classList.add('visible');
+      btn.disabled = false;
+      btn.textContent = 'Entrar';
+    }
+  } catch (e) {
+    errEl.textContent = 'Error de conexión. Verifica tu internet.';
+    errEl.classList.add('visible');
+    btn.disabled = false;
+    btn.textContent = 'Entrar';
+  }
+}
+
+function mostrarApp() {
+  document.getElementById('login-screen').classList.add('hidden');
   document.getElementById('sidebar-user-name').textContent = APP.usuario.nombre || APP.usuario.email;
   document.getElementById('sidebar-user-role').textContent = labelRol(APP.usuario.rol);
+  construirMenu();
+  mostrarPantalla('dashboard');
+}
+
+function cerrarSesion() {
+  localStorage.removeItem('gestlog_usuario');
+  APP.usuario = null;
+  document.getElementById('login-email').value = '';
+  document.getElementById('login-error').classList.remove('visible');
+  document.getElementById('login-btn').disabled = false;
+  document.getElementById('login-btn').textContent = 'Entrar';
+  document.getElementById('login-screen').classList.remove('hidden');
+}
+
+async function cargarUsuario() {
+  // Intentar recuperar sesión guardada
+  const sesionGuardada = localStorage.getItem('gestlog_usuario');
+  if (sesionGuardada) {
+    try {
+      APP.usuario = JSON.parse(sesionGuardada);
+      mostrarApp();
+      return;
+    } catch(e) {}
+  }
+  // Si no hay sesión, mostrar login (la pantalla ya está visible por defecto)
 }
 
 function labelRol(rol) {
