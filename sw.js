@@ -1,7 +1,7 @@
 // ============================================================
 // GESTLOG AC - Service Worker
 // ============================================================
-const CACHE_NAME = 'gestlog-ac-v1';
+const CACHE_NAME = 'gestlog-ac-v2';
 const CACHE_ASSETS = [
   './',
   './index.html',
@@ -53,18 +53,23 @@ self.addEventListener('fetch', event => {
     return;
   }
 
+  // Ignorar peticiones que no sean http/https
+  if (!event.request.url.startsWith('http')) return;
+
   // Para assets locales: Cache First
   event.respondWith(
     caches.match(event.request).then(cached => {
       return cached || fetch(event.request).then(response => {
-        // Guardar en caché recursos nuevos
+        // Solo cachear respuestas válidas de http/https
+        if (!response || response.status !== 200 || !event.request.url.startsWith('http')) {
+          return response;
+        }
         return caches.open(CACHE_NAME).then(cache => {
           cache.put(event.request, response.clone());
           return response;
         });
       });
     }).catch(() => {
-      // Fallback a index.html para rutas desconocidas
       return caches.match('./index.html');
     })
   );
