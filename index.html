@@ -249,8 +249,19 @@
 
     /* Responsive */
     @media (max-width: 768px) {
-      #sidebar { position: fixed; left: -240px; }
-      #sidebar.open { left: 0; }
+      #sidebar { 
+        position: fixed; 
+        left: -260px; 
+        top: 0;
+        height: 100vh;
+        z-index: 200;
+        transition: left 0.25s ease;
+        box-shadow: none;
+      }
+      #sidebar.open { 
+        left: 0; 
+        box-shadow: 4px 0 20px rgba(0,0,0,0.4);
+      }
       .form-grid, .form-grid-3 { grid-template-columns: 1fr; }
       .stats-grid { grid-template-columns: 1fr 1fr; }
     }
@@ -2026,25 +2037,30 @@ function toast(mensaje, tipo) {
 // ============================================================
 // TOGGLE SIDEBAR (MOBILE)
 // ============================================================
-function toggleSidebar() {
-  const sidebar = document.getElementById('sidebar');
-  sidebar.classList.toggle('open');
-  // Mostrar/ocultar overlay oscuro en móvil
-  let overlay = document.getElementById('sidebar-overlay');
-  if (!overlay) {
-    overlay = document.createElement('div');
-    overlay.id = 'sidebar-overlay';
-    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:99;display:none';
-    overlay.onclick = cerrarSidebarMovil;
-    document.body.appendChild(overlay);
-  }
-  overlay.style.display = sidebar.classList.contains('open') ? 'block' : 'none';
-}
-
 function cerrarSidebarMovil() {
-  document.getElementById('sidebar').classList.remove('open');
+  const sidebar = document.getElementById('sidebar');
+  sidebar.classList.remove('open');
   const overlay = document.getElementById('sidebar-overlay');
   if (overlay) overlay.style.display = 'none';
+}
+
+function toggleSidebar() {
+  const sidebar = document.getElementById('sidebar');
+  const estaAbierto = sidebar.classList.contains('open');
+  if (estaAbierto) {
+    cerrarSidebarMovil();
+  } else {
+    sidebar.classList.add('open');
+    let overlay = document.getElementById('sidebar-overlay');
+    if (!overlay) {
+      overlay = document.createElement('div');
+      overlay.id = 'sidebar-overlay';
+      overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:199;';
+      overlay.onclick = cerrarSidebarMovil;
+      document.body.appendChild(overlay);
+    }
+    overlay.style.display = 'block';
+  }
 }
 
 // ============================================================
