@@ -554,7 +554,7 @@ function construirMenu() {
     } else {
       const rolesOk = !item.roles || item.roles.includes(rol) || item.roles.includes('*');
       if (!rolesOk) return;
-      html += `<div class="nav-item" data-screen="${item.screen}" onclick="mostrarPantalla('${item.screen}')">
+      html += `<div class="nav-item" data-screen="${item.screen}" onclick="mostrarPantalla('${item.screen}'); cerrarSidebarMovil()">
         ${item.icon || ''} <span>${item.label}</span>
         ${item.badge ? `<span class="nav-badge" id="badge-${item.screen}" style="display:none">0</span>` : ''}
       </div>`;
@@ -2023,7 +2023,26 @@ function toast(mensaje, tipo) {
 // TOGGLE SIDEBAR (MOBILE)
 // ============================================================
 function toggleSidebar() {
-  document.getElementById('sidebar').classList.toggle('open');
+  const sidebar = document.getElementById('sidebar');
+  sidebar.classList.toggle('open');
+  // Mostrar/ocultar overlay oscuro en móvil
+  let overlay = document.getElementById('sidebar-overlay');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.id = 'sidebar-overlay';
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:99;display:none';
+    overlay.onclick = cerrarSidebarMovil;
+    document.body.appendChild(overlay);
+  }
+  overlay.style.display = sidebar.classList.contains('open') ? 'block' : 'none';
+}
+
+function cerrarSidebarMovil() {
+  if (window.innerWidth <= 768) {
+    document.getElementById('sidebar').classList.remove('open');
+    const overlay = document.getElementById('sidebar-overlay');
+    if (overlay) overlay.style.display = 'none';
+  }
 }
 
 // ============================================================
