@@ -487,6 +487,10 @@ function mostrarApp() {
   document.getElementById('login-screen').classList.add('hidden');
   document.getElementById('sidebar-user-name').textContent = APP.usuario.nombre || APP.usuario.email;
   document.getElementById('sidebar-user-role').textContent = labelRol(APP.usuario.rol);
+  // Cerrar sidebar en móvil al iniciar
+  if (window.innerWidth <= 768) {
+    document.getElementById('sidebar').classList.remove('open');
+  }
   construirMenu();
   mostrarPantalla('dashboard');
 }
@@ -2038,11 +2042,9 @@ function toggleSidebar() {
 }
 
 function cerrarSidebarMovil() {
-  if (window.innerWidth <= 768) {
-    document.getElementById('sidebar').classList.remove('open');
-    const overlay = document.getElementById('sidebar-overlay');
-    if (overlay) overlay.style.display = 'none';
-  }
+  document.getElementById('sidebar').classList.remove('open');
+  const overlay = document.getElementById('sidebar-overlay');
+  if (overlay) overlay.style.display = 'none';
 }
 
 // ============================================================
