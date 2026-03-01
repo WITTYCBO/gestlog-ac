@@ -558,7 +558,7 @@ function construirMenu() {
     } else {
       const rolesOk = !item.roles || item.roles.includes(rol) || item.roles.includes('*');
       if (!rolesOk) return;
-      html += `<div class="nav-item" data-screen="${item.screen}" onclick="mostrarPantalla('${item.screen}'); cerrarSidebarMovil()">
+      html += `<div class="nav-item" data-screen="${item.screen}" onclick="cerrarSidebarMovil(); mostrarPantalla('${item.screen}')">
         ${item.icon || ''} <span>${item.label}</span>
         ${item.badge ? `<span class="nav-badge" id="badge-${item.screen}" style="display:none">0</span>` : ''}
       </div>`;
