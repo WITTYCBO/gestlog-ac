@@ -1,7 +1,7 @@
 // ============================================================
 // GESTLOG AC - Service Worker
 // ============================================================
-const CACHE_NAME = 'gestlog-ac-v2';
+const CACHE_NAME = 'gestlog-ac-v3';
 const CACHE_ASSETS = [
   './',
   './index.html',
