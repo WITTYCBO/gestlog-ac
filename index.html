@@ -340,12 +340,50 @@
       <div class="login-logo-title">GESTLOG AC</div>
       <div class="login-logo-sub">Automáticos Canarios</div>
     </div>
-    <div class="login-field">
-      <label for="login-email">Correo electrónico</label>
-      <input type="email" id="login-email" placeholder="usuario@automaticoscanarios.es" autocomplete="email">
+
+    <!-- PASO 1: EMAIL -->
+    <div id="login-paso1">
+      <div class="login-field">
+        <label for="login-email">Correo electrónico</label>
+        <input type="email" id="login-email" placeholder="tu@email.com" autocomplete="email">
+      </div>
+      <div class="login-error" id="login-error-1"></div>
+      <button class="login-btn" id="login-btn-1" onclick="verificarEmail()">Continuar →</button>
     </div>
-    <div class="login-error" id="login-error">Usuario no encontrado o sin acceso.</div>
-    <button class="login-btn" id="login-btn" onclick="hacerLogin()">Entrar</button>
+
+    <!-- PASO 2A: CONTRASEÑA (usuario ya registrado) -->
+    <div id="login-paso2" style="display:none">
+      <div style="background:#E3F2FD;border-radius:8px;padding:10px 14px;font-size:13px;margin-bottom:4px">
+        👤 <strong id="login-nombre-mostrado"></strong>
+        <span style="float:right;cursor:pointer;color:#1976D2" onclick="volverAlEmail()">Cambiar</span>
+      </div>
+      <div class="login-field">
+        <label for="login-password">Contraseña</label>
+        <input type="password" id="login-password" placeholder="Tu contraseña" autocomplete="current-password">
+      </div>
+      <div class="login-error" id="login-error-2"></div>
+      <button class="login-btn" id="login-btn-2" onclick="loginConPassword()">Entrar</button>
+    </div>
+
+    <!-- PASO 2B: CREAR CONTRASEÑA (primer acceso) -->
+    <div id="login-paso3" style="display:none">
+      <div style="background:#E8F5E9;border-radius:8px;padding:10px 14px;font-size:13px;margin-bottom:4px">
+        ✅ Bienvenido, <strong id="login-nombre-nuevo"></strong>
+      </div>
+      <div class="alert-info" style="background:#E3F2FD;border-radius:8px;padding:10px;font-size:12px;margin-bottom:8px">
+        🔐 Es tu primer acceso. Crea una contraseña para entrar en el futuro.
+      </div>
+      <div class="login-field">
+        <label for="login-nueva-pass">Nueva contraseña</label>
+        <input type="password" id="login-nueva-pass" placeholder="Mínimo 6 caracteres">
+      </div>
+      <div class="login-field">
+        <label for="login-confirmar-pass">Confirmar contraseña</label>
+        <input type="password" id="login-confirmar-pass" placeholder="Repite la contraseña">
+      </div>
+      <div class="login-error" id="login-error-3"></div>
+      <button class="login-btn" id="login-btn-3" onclick="crearPassword()">Crear contraseña y entrar</button>
+    </div>
   </div>
 </div>
 
@@ -449,56 +487,130 @@ if ('serviceWorker' in navigator) {
 document.addEventListener('DOMContentLoaded', async () => {
   // Enter en el campo de email hace login
   document.getElementById('login-email').addEventListener('keydown', e => {
-    if (e.key === 'Enter') hacerLogin();
+    if (e.key === 'Enter') verificarEmail();
+  });
+  document.getElementById('login-password')?.addEventListener('keydown', e => {
+    if (e.key === 'Enter') loginConPassword();
   });
   await cargarUsuario();
 });
 
 // ============================================================
-// AUTENTICACIÓN
+// AUTENTICACIÓN — FLUJO DE 3 PASOS
 // ============================================================
-async function hacerLogin() {
+let _usuarioTemp = null; // Usuario verificado temporalmente
+
+function volverAlEmail() {
+  _usuarioTemp = null;
+  document.getElementById('login-paso1').style.display = '';
+  document.getElementById('login-paso2').style.display = 'none';
+  document.getElementById('login-paso3').style.display = 'none';
+  document.getElementById('login-email').focus();
+}
+
+async function verificarEmail() {
   const email = document.getElementById('login-email').value.trim().toLowerCase();
-  const btn = document.getElementById('login-btn');
-  const errEl = document.getElementById('login-error');
+  const btn = document.getElementById('login-btn-1');
+  const errEl = document.getElementById('login-error-1');
 
-  if (!email) {
-    errEl.textContent = 'Por favor introduce tu correo.';
-    errEl.classList.add('visible');
-    return;
-  }
+  if (!email) { errEl.textContent = 'Introduce tu correo.'; errEl.classList.add('visible'); return; }
 
-  btn.disabled = true;
-  btn.textContent = 'Verificando...';
+  btn.disabled = true; btn.textContent = 'Verificando...';
   errEl.classList.remove('visible');
 
   try {
     const res = await apiGet({ action: 'loginPorEmail', email });
     if (res.ok && res.data) {
-      APP.usuario = res.data;
-      APP.email = email;
-      // Guardar sesión local
-      localStorage.setItem('gestlog_usuario', JSON.stringify(res.data));
-      mostrarApp();
+      _usuarioTemp = res.data;
+      // ¿Tiene contraseña creada?
+      if (res.data.password_hash) {
+        // Mostrar paso 2: introducir contraseña
+        document.getElementById('login-nombre-mostrado').textContent = res.data.nombre;
+        document.getElementById('login-paso1').style.display = 'none';
+        document.getElementById('login-paso2').style.display = '';
+        setTimeout(() => document.getElementById('login-password').focus(), 100);
+      } else {
+        // Primer acceso: crear contraseña
+        document.getElementById('login-nombre-nuevo').textContent = res.data.nombre;
+        document.getElementById('login-paso1').style.display = 'none';
+        document.getElementById('login-paso3').style.display = '';
+        setTimeout(() => document.getElementById('login-nueva-pass').focus(), 100);
+      }
     } else {
-      errEl.textContent = 'Usuario no encontrado o sin acceso al sistema.';
+      errEl.textContent = 'Usuario no encontrado o sin acceso.';
       errEl.classList.add('visible');
-      btn.disabled = false;
-      btn.textContent = 'Entrar';
     }
-  } catch (e) {
+  } catch(e) {
     errEl.textContent = 'Error de conexión. Verifica tu internet.';
     errEl.classList.add('visible');
-    btn.disabled = false;
-    btn.textContent = 'Entrar';
   }
+  btn.disabled = false; btn.textContent = 'Continuar →';
+}
+
+async function loginConPassword() {
+  const password = document.getElementById('login-password').value;
+  const btn = document.getElementById('login-btn-2');
+  const errEl = document.getElementById('login-error-2');
+
+  if (!password) { errEl.textContent = 'Introduce tu contraseña.'; errEl.classList.add('visible'); return; }
+
+  btn.disabled = true; btn.textContent = 'Verificando...';
+  errEl.classList.remove('visible');
+
+  try {
+    const res = await apiGet({ action: 'verificarPassword', email: _usuarioTemp.email, password });
+    if (res.ok) {
+      entrarEnApp(_usuarioTemp);
+    } else {
+      errEl.textContent = 'Contraseña incorrecta.';
+      errEl.classList.add('visible');
+      btn.disabled = false; btn.textContent = 'Entrar';
+    }
+  } catch(e) {
+    errEl.textContent = 'Error de conexión.';
+    errEl.classList.add('visible');
+    btn.disabled = false; btn.textContent = 'Entrar';
+  }
+}
+
+async function crearPassword() {
+  const pass1 = document.getElementById('login-nueva-pass').value;
+  const pass2 = document.getElementById('login-confirmar-pass').value;
+  const btn = document.getElementById('login-btn-3');
+  const errEl = document.getElementById('login-error-3');
+
+  if (pass1.length < 6) { errEl.textContent = 'La contraseña debe tener al menos 6 caracteres.'; errEl.classList.add('visible'); return; }
+  if (pass1 !== pass2) { errEl.textContent = 'Las contraseñas no coinciden.'; errEl.classList.add('visible'); return; }
+
+  btn.disabled = true; btn.textContent = 'Guardando...';
+  errEl.classList.remove('visible');
+
+  try {
+    const res = await apiGet({ action: 'crearPassword', email: _usuarioTemp.email, password: pass1 });
+    if (res.ok) {
+      entrarEnApp(_usuarioTemp);
+    } else {
+      errEl.textContent = 'Error al guardar contraseña: ' + res.error;
+      errEl.classList.add('visible');
+      btn.disabled = false; btn.textContent = 'Crear contraseña y entrar';
+    }
+  } catch(e) {
+    errEl.textContent = 'Error de conexión.';
+    errEl.classList.add('visible');
+    btn.disabled = false; btn.textContent = 'Crear contraseña y entrar';
+  }
+}
+
+function entrarEnApp(usuario) {
+  APP.usuario = usuario;
+  localStorage.setItem('gestlog_usuario', JSON.stringify(usuario));
+  mostrarApp();
 }
 
 function mostrarApp() {
   document.getElementById('login-screen').classList.add('hidden');
   document.getElementById('sidebar-user-name').textContent = APP.usuario.nombre || APP.usuario.email;
   document.getElementById('sidebar-user-role').textContent = labelRol(APP.usuario.rol);
-  // Cerrar sidebar en móvil al iniciar
   if (window.innerWidth <= 768) {
     document.getElementById('sidebar').classList.remove('open');
   }
@@ -509,15 +621,25 @@ function mostrarApp() {
 function cerrarSesion() {
   localStorage.removeItem('gestlog_usuario');
   APP.usuario = null;
+  _usuarioTemp = null;
+  // Resetear formulario login
   document.getElementById('login-email').value = '';
-  document.getElementById('login-error').classList.remove('visible');
-  document.getElementById('login-btn').disabled = false;
-  document.getElementById('login-btn').textContent = 'Entrar';
+  document.getElementById('login-password').value = '';
+  document.getElementById('login-nueva-pass').value = '';
+  document.getElementById('login-confirmar-pass').value = '';
+  document.getElementById('login-error-1').classList.remove('visible');
+  document.getElementById('login-error-2').classList.remove('visible');
+  document.getElementById('login-error-3').classList.remove('visible');
+  document.getElementById('login-btn-1').disabled = false;
+  document.getElementById('login-btn-1').textContent = 'Continuar →';
+  // Mostrar paso 1
+  document.getElementById('login-paso1').style.display = '';
+  document.getElementById('login-paso2').style.display = 'none';
+  document.getElementById('login-paso3').style.display = 'none';
   document.getElementById('login-screen').classList.remove('hidden');
 }
 
 async function cargarUsuario() {
-  // Intentar recuperar sesión guardada
   const sesionGuardada = localStorage.getItem('gestlog_usuario');
   if (sesionGuardada) {
     try {
@@ -526,7 +648,6 @@ async function cargarUsuario() {
       return;
     } catch(e) {}
   }
-  // Si no hay sesión, mostrar login (la pantalla ya está visible por defecto)
 }
 
 function labelRol(rol) {
