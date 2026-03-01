@@ -2202,11 +2202,14 @@ async function apiGet(params) {
 }
 
 async function apiPost(body) {
-  const res = await fetch(APP.SCRIPT_URL, {
-    method: 'POST',
-    body: JSON.stringify(body),
-    headers: { 'Content-Type': 'application/json' }
+  // Google Apps Script maneja mejor GET que POST desde orígenes externos
+  // Enviamos los datos como parámetro GET codificado
+  const params = new URLSearchParams({
+    action: body.action,
+    payload: JSON.stringify(body.data || {})
   });
+  const url = `${APP.SCRIPT_URL}?${params.toString()}`;
+  const res = await fetch(url);
   return res.json();
 }
 
